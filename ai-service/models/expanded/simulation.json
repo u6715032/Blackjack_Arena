@@ -1,0 +1,27 @@
+{
+  "neural_network": {
+    "rounds": 10000,
+    "seed": 2026,
+    "outcomes": {
+      "win": 4325,
+      "loss": 4832,
+      "push": 843
+    },
+    "decision_count": 13571,
+    "largest_player_hand_observed": 7,
+    "win_fraction": 0.4325
+  },
+  "reference": {
+    "rounds": 10000,
+    "seed": 2026,
+    "outcomes": {
+      "win": 4333,
+      "loss": 4824,
+      "push": 843
+    },
+    "decision_count": 13537,
+    "largest_player_hand_observed": 7,
+    "win_fraction": 0.4333
+  },
+  "interpretation": "10,000 seeded single-hand rounds per policy with a fresh six-deck shoe each round. The same seed starts each policy, but different actions change card consumption. No money, no continuous learning, no claim of statistical significance or optimal strategy."
+}

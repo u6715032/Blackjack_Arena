@@ -2,14 +2,26 @@
   "name": "blackjack-arena",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["backend", "frontend"],
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "dev": "concurrently -k -n server,web \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "test": "npm test -w backend",
     "test:ai": "ai-service/.venv/bin/python -m pytest ai-service/tests -q",
     "test:database": "npm run test:database -w backend",
+    "test:browser": "playwright test",
+    "format": "prettier --write backend/src backend/tests frontend/src frontend/vite.config.js tests playwright.config.js package.json",
     "build": "npm run build -w frontend"
   },
-  "devDependencies": {"concurrently": "^9.2.1"},
-  "engines": {"node": ">=22.12"}
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
 }
