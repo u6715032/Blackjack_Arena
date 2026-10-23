@@ -143,3 +143,34 @@ test("duplicate simultaneous actions are rejected while AI is awaited", async ()
   release(standPrediction);
   await first;
 });
+
+test('room privacy, host transfer, reconnect policy and stale advice', async () => {
+  const service=createGameService({repository:testRepository(),predict:async()=>standPrediction,
+    shoeFactory:()=>testShoe('5','6','10','6','7','7')});
+  const host={_id:'host',username:'Host'}; const guest={_id:'guest',username:'Guest'};
+  let room=service.createRoom(host); service.joinRoom(guest,room.code);
+  room=await service.startRoom(host._id);
+  await assert.rejects(service.roomAdvice(guest._id,{roundId:room.game.id,revision:room.game.revision}),/active turn/);
+  await assert.rejects(service.roomAdvice(host._id,{roundId:room.game.id,revision:-1}),/changed/);
+  await service.setConnected(host._id,false);
+  room=service.roomView(guest._id);
+  assert.equal(room.hostId,guest._id);
+  assert.equal(room.game.currentPlayerId,guest._id);
+  assert.equal(room.game.players[0].status,'disconnected');
+  await service.setConnected(host._id,true);
+  assert.equal(service.roomView(host._id).game.players[0].status,'disconnected');
+  await assert.rejects(service.roomAction(host._id,{action:'HIT',roundId:room.game.id,revision:room.game.revision}),/turn/);
+});
+
+test('unsaved multiplayer completion is retained when the final player tries to leave', async () => {
+  let saveWorks=false;const repository=testRepository();repository.saveRound=async()=>{if(!saveWorks)throw new Error('offline');};
+  const service=createGameService({repository,predict:async()=>standPrediction,
+    shoeFactory:()=>testShoe('5','6','10','6','7','7')});
+  const host={_id:'host',username:'Host'};const guest={_id:'guest',username:'Guest'};
+  const room=service.createRoom(host);service.joinRoom(guest,room.code);await service.startRoom(host._id);
+  await service.leaveRoom(host._id);
+  await assert.rejects(service.leaveRoom(guest._id),/Save/);
+  assert.equal(service.roomView(guest._id).game.saved,false);
+  saveWorks=true;await service.retryRoomSave(guest._id);await service.leaveRoom(guest._id);
+  assert.equal(service.roomView(guest._id),null);
+});

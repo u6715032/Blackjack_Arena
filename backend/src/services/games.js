@@ -282,12 +282,13 @@ export function createGameService({ repository, predict, shoeFactory }) {
               room.players[0].id;
           broadcast(room);
         }
+        connectionStatus.delete(userId);
         return room.code;
       });
     },
     async setConnected(userId, connected) {
-      connectionStatus.set(userId, connected);
       if (!userRooms.has(userId)) return;
+      connectionStatus.set(userId, connected);
       const room = requireRoom(userId);
       // A disconnect during an awaited save/advice is retried once the short operation ends.
       if (busy.has(room.code)) {
@@ -313,7 +314,10 @@ export function createGameService({ repository, predict, shoeFactory }) {
           room.players.every((player) => !player.connected) &&
           (!room.game || room.game.saved)
         ) {
-          for (const player of room.players) userRooms.delete(player.id);
+          for (const player of room.players) {
+            userRooms.delete(player.id);
+            connectionStatus.delete(player.id);
+          }
           rooms.delete(room.code);
         } else broadcast(room);
       });
