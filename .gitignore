@@ -5,3 +5,10 @@ node_modules/
 .venv/
 __pycache__/
 dist/
+.tools/
+.pytest_cache/
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
