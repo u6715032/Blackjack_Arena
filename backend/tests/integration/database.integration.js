@@ -10,9 +10,9 @@ import { User, GameHistory, PlayerStatistics } from "../../src/models/index.js";
 import { createApplication } from "../../src/app.js";
 import { createRound, processStand } from "../../src/game/engine.js";
 import { testShoe } from "../helpers.js";
-import { testRepository } from '../helpers.js';
-import { createGameService } from '../../src/services/games.js';
-import { createAiClient } from '../../src/services/ai.js';
+import { testRepository } from "../helpers.js";
+import { createGameService } from "../../src/services/games.js";
+import { createAiClient } from "../../src/services/ai.js";
 
 test("real Atlas: accounts, real AI bots/advice, durable history, statistics and idempotency", async () => {
   const config = readConfig();
@@ -115,6 +115,7 @@ test("real Atlas: accounts, real AI bots/advice, durable history, statistics and
     );
     const stats = await PlayerStatistics.findOne({ user: createdIds[0] });
     assert.equal(stats.totalGames, 2);
+    assert.equal(stats.winPercentage, 50);
     assert.equal(stats.wins + stats.losses + stats.pushes, 2);
     const anonymous = request(application.app);
     await anonymous.get("/api/profile").expect(401);
@@ -139,22 +140,57 @@ test("real Atlas: accounts, real AI bots/advice, durable history, statistics and
   }
 });
 
-test('real FastAPI: bot and assistant both support hands above six cards', async () => {
+test("real FastAPI: bot and assistant both support hands above six cards", async () => {
   const predict = createAiClient(readConfig().aiServiceUrl);
-  const human = {_id:'long-hand-student',username:'LongHand'};
-  const botGame = createGameService({repository:testRepository(),predict,
-    shoeFactory:()=>testShoe('5','A','10','6','A','7','A','A','A','A','A','A','A','5')});
-  let game = await botGame.startSingle(human,1);
-  game = await botGame.singleAction(human._id,{action:'STAND',roundId:game.id,revision:game.revision});
-  assert.equal(game.status,'complete');
-  assert.equal(game.aiError,null);
+  const human = { _id: "long-hand-student", username: "LongHand" };
+  const botGame = createGameService({
+    repository: testRepository(),
+    predict,
+    shoeFactory: () =>
+      testShoe(
+        "5",
+        "A",
+        "10",
+        "6",
+        "A",
+        "7",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "A",
+        "5",
+      ),
+  });
+  let game = await botGame.startSingle(human, 1);
+  game = await botGame.singleAction(human._id, {
+    action: "STAND",
+    roundId: game.id,
+    revision: game.revision,
+  });
+  assert.equal(game.status, "complete");
+  assert.equal(game.aiError, null);
   assert.ok(game.players[1].hand.length > 6);
-  const humanGame = createGameService({repository:testRepository(),predict,
-    shoeFactory:()=>testShoe('A','10','A','7','A','A','A','A','A','A','A','5')});
-  game = await humanGame.startSingle(human,0);
-  for(let hit=0;hit<5;hit+=1)game=await humanGame.singleAction(human._id,{action:'HIT',roundId:game.id,revision:game.revision});
-  assert.equal(game.players[0].hand.length,7);
-  const advice=await humanGame.singleAdvice(human._id,{roundId:game.id,revision:game.revision});
-  assert.ok(['HIT','STAND'].includes(advice.action));
-  assert.equal(humanGame.singleView(human._id).revision,game.revision);
+  const humanGame = createGameService({
+    repository: testRepository(),
+    predict,
+    shoeFactory: () =>
+      testShoe("A", "10", "A", "7", "A", "A", "A", "A", "A", "A", "A", "5"),
+  });
+  game = await humanGame.startSingle(human, 0);
+  for (let hit = 0; hit < 5; hit += 1)
+    game = await humanGame.singleAction(human._id, {
+      action: "HIT",
+      roundId: game.id,
+      revision: game.revision,
+    });
+  assert.equal(game.players[0].hand.length, 7);
+  const advice = await humanGame.singleAdvice(human._id, {
+    roundId: game.id,
+    revision: game.revision,
+  });
+  assert.ok(["HIT", "STAND"].includes(advice.action));
+  assert.equal(humanGame.singleView(human._id).revision, game.revision);
 });

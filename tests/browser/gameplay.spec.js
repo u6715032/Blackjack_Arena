@@ -30,12 +30,18 @@ async function register(page, label) {
   await page
     .getByLabel("Password", { exact: true })
     .fill("browser-only-password");
+  const registrationResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/auth/register") &&
+      response.request().method() === "POST",
+  );
   await page
     .getByRole("button", { name: "Create account →", exact: true })
     .click();
+  const registration = await registrationResponse;
+  expect(registration.status()).toBe(201);
+  createdIds.push((await registration.json()).user.id);
   await expect(page).toHaveURL(/\/single$/);
-  const response = await page.request.get("/api/auth/me");
-  createdIds.push((await response.json()).user.id);
 }
 
 test("browser: register, real assistant, bot round, saved profile, mobile layout and logout", async ({

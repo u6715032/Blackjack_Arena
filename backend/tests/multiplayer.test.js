@@ -4,7 +4,7 @@ import { once } from "node:events";
 import request from "supertest";
 import { io as connectSocket } from "socket.io-client";
 import { createApplication } from "../src/app.js";
-import { testRepository, testConfig } from "./helpers.js";
+import { testRepository, testConfig, testShoe } from "./helpers.js";
 
 function emit(socket, event, data = {}) {
   return new Promise((resolve, reject) =>
@@ -27,6 +27,23 @@ test("real Socket.IO clients: authentication, rooms, turns, hidden cards, stale 
   const { app, server, io } = createApplication({
     config: testConfig,
     repository: testRepository(),
+    shoeFactory: () =>
+      testShoe(
+        "5",
+        "6",
+        "7",
+        "8",
+        "10",
+        "6",
+        "7",
+        "8",
+        "9",
+        "7",
+        "2",
+        "3",
+        "4",
+        "5",
+      ),
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");

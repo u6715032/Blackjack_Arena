@@ -63,7 +63,9 @@ export default function AuthPage({ mode }) {
               maxLength={24}
               pattern="[A-Za-z0-9_]+"
             />
-            <small id="username-hint">3–24 letters, numbers, or underscores.</small>
+            <small id="username-hint">
+              3–24 letters, numbers, or underscores.
+            </small>
           </label>
         )}
         <label>
@@ -92,7 +94,9 @@ export default function AuthPage({ mode }) {
             minLength={10}
             maxLength={72}
           />
-          <small id="password-hint">At least 10 characters; maximum 72 UTF-8 bytes.</small>
+          <small id="password-hint">
+            At least 10 characters; maximum 72 UTF-8 bytes.
+          </small>
         </label>
         {error && (
           <p className="notice error" role="alert">

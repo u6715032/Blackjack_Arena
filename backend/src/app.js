@@ -81,13 +81,11 @@ export function createApplication({
       return response.status(413).json({ error: "Request is too large." });
     const status = error.status || 503;
     // Driver errors can contain hosts and credentials. Never return or log raw database errors.
-    response
-      .status(status)
-      .json({
-        error: error.status
-          ? error.message
-          : "Database or server unavailable. Please retry.",
-      });
+    response.status(status).json({
+      error: error.status
+        ? error.message
+        : "Database or server unavailable. Please retry.",
+    });
   });
   configureSockets(io, auth, games, config.clientOrigin);
   return { app, server, io, games };

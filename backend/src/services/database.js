@@ -64,7 +64,7 @@ export const database = {
         const statistics = await PlayerStatistics.findOneAndUpdate(
           { user: player.id },
           { $inc: { totalGames: 1, [counter]: 1 } },
-          { returnDocument: 'after', session, upsert: true },
+          { returnDocument: "after", session, upsert: true },
         );
         statistics.winPercentage = Number(
           ((statistics.wins / statistics.totalGames) * 100).toFixed(2),

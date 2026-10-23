@@ -109,11 +109,9 @@ export function createRoutes({ repository, auth, games, io }) {
     response.json({ game: games.singleView(String(request.user._id)) }),
   );
   router.post("/games/single", async (request, response) =>
-    response
-      .status(201)
-      .json({
-        game: await games.startSingle(request.user, request.body?.botCount),
-      }),
+    response.status(201).json({
+      game: await games.startSingle(request.user, request.body?.botCount),
+    }),
   );
   router.post("/games/single/action", async (request, response) =>
     response.json({
