@@ -94,7 +94,6 @@ export default function Home() {
             strategy assistant. Every decision is yours to make.
           </p>
         </div>
-        <span className="outline-tag">4 → 16 → 8 → 2</span>
       </section>
     </>
   );

@@ -69,8 +69,6 @@ function App() {
         <Link className="brand" to="/">
           ♠ BLACKJACK ARENA
         </Link>
-        <span>A student-built game. A shared learning experience.</span>
-        <small>No real money. No betting.</small>
       </footer>
     </>
   );

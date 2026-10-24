@@ -390,15 +390,12 @@ main {
   border-radius: 4px;
   white-space: nowrap;
 }
-.learning-strip .outline-tag {
-  margin-left: auto;
-}
 footer {
   border-top: 1px solid var(--line);
   padding: 28px 5%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 20px;
   color: var(--muted);
   font-size: 0.7rem;
@@ -1072,9 +1069,6 @@ td {
   .statistic {
     padding: 17px;
   }
-  .learning-strip .outline-tag {
-    display: none;
-  }
   .hero-cards .playing-card {
     width: 115px;
     height: 165px;
@@ -1226,10 +1220,6 @@ td {
     flex-wrap: wrap;
     justify-content: center;
     text-align: center;
-  }
-  footer > span {
-    width: 100%;
-    order: 3;
   }
   .round-setup {
     align-items: center;
