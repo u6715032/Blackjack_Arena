@@ -76,7 +76,7 @@ tablemates. For disconnect and restart policies, see learning-guide chapter 06.
 Bind to loopback locally. Do not expose this service as a browser-facing API;
 it has no independent user authentication and assumes a private network.
 
-`GET /health` confirms loaded expanded model, 234 parameters, dataset version,
+`GET /health` confirms the loaded model, 234 parameters, dataset version,
 and supported 2–20-card range. Missing/incompatible weights prevent startup.
 
 `POST /predict` accepts exactly four strict integer fields:
@@ -94,3 +94,7 @@ Response fields: `action` (`HIT`/`STAND`), `scores.hit`, `scores.stand`,
 Softmax scores are model preferences, not win probabilities. Explanations compare
 reference strategy; they are not neural interpretability evidence. The saved
 checkpoint, feature order/scales, labels, and architecture must all match.
+
+The default checkpoint is `ai-service/models/blackjack_nn.pt`. `model.py` owns
+architecture, normalization, and compatibility checks; `blackjack_ai_api.py` uses
+those functions without importing the offline TensorFlow training program.

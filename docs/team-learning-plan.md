@@ -12,7 +12,7 @@ and explain the distinction between model preference and chance of winning.
 
 | Week | Member 1 hands-on work | Member 2 hands-on work | Member 3 hands-on work | Shared evidence / review |
 | --- | --- | --- | --- | --- |
-| 1 | Run React; trace Home and routes; sketch responsive table | Start backend with own secret config; trace startup | Load original/expanded checkpoints and inspect metadata | All independently run the app; agree on excluded features and rules |
+| 1 | Run React; trace Home and routes; sketch responsive table | Start backend with own secret config; trace startup | Load the final checkpoint and inspect its metadata in model.py | All independently run the app; agree on excluded features and rules |
 | 2 | Reproduce PlayingCard in a scratch branch using props | Reproduce one protected GET route in a scratch branch | Reproduce Ace scoring without reading implementation first | Compare solutions; draw architecture and trust boundaries |
 | 3 | Trace state from deal click to returned table | Trace route handler to game service and engine | Write natural/ordinary-21 examples and explain result order | Add one meaningful engine edge-case test together |
 | 4 | Use Network tab to inspect hidden-card masking | Attempt forged/out-of-turn/stale requests using test clients | Deliberately break dealer S17; locate failing test and fix | Document the bug cause and restored rule; review privacy |
@@ -21,12 +21,12 @@ and explain the distinction between model preference and chance of winning.
 | 7 | Follow room events and waiting-room state updates | Reproduce create/join capacity checks; test invalid room code | Pair on a deterministic multiplayer turn fixture | Four local Socket.IO clients synchronize; show rejected fifth join |
 | 8 | Test navigation/disconnect and two tabs of one account | Debug host transfer and last-socket disconnect behavior | Trace disconnected-hand status through dealer completion | Demonstrate chosen policy, including reconnect not undoing stand |
 | 9 | Display a real advice result and stale-advice clearing | Trace Express-to-FastAPI request and timeout behavior | Reproduce normalized inputs and one network forward pass | All calculate the 234 parameters and explain ReLU/Softmax |
-| 10 | Pair with Member 3 on model/reference disagreement UI | Write/test one malformed AI response or outage case | Retrain expanded model into a separate experiment directory | Record actual loss/accuracy; preserve baseline weights and compare |
+| 10 | Pair with Member 3 on model/reference disagreement UI | Write/test one malformed AI response or outage case | Use train.py with --output to train into a temporary experiment directory | Record actual loss/accuracy; keep serving weights intact and compare |
 | 11 | Pair on a browser test that checks advice never auto-acts | Pair on actual Atlas persistence/cleanup integration test | Verify new experiment's TensorFlow/PyTorch numerical parity | Review test isolation; distinguish fixture predictions from real inference |
 | 12 | Test 390px and desktop layouts; fix an observed overflow | Check session revocation, protected history, limits and error sanitization | Test reachable >6-card bot/assistant cases | Run full test matrix and frontend build; track actual failures |
 | 13 | Swap to backend ownership for a small reviewed change | Swap to engine/AI ownership for a small reviewed change | Swap to frontend ownership for a small reviewed change | Each explains and debugs code outside primary area; prepare demo backup |
 | 14 | Prepare UI demonstration and accessibility explanation | Prepare database and multiplayer demonstration | Prepare training methodology, confusion matrix and limitation explanation | Mock defense: each answers architecture/AI/security questions; update report figures |
-| 15 | Verify demo layout and account flows from a clean checkout | Verify configuration instructions and full integration checks | Verify original hashes, trained artifacts and evaluation commands | Rehearse timed defense; tag reviewed local version; submit honest limitations and results |
+| 15 | Verify demo layout and account flows from a clean checkout | Verify configuration instructions and full integration checks | Verify final artifact fingerprints, training commands and evaluation results | Rehearse timed defense; tag reviewed local version; submit honest limitations and results |
 
 ## Weekly practice rules
 

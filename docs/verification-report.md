@@ -1,233 +1,266 @@
-# Final implementation and verification report
+# AI cleanup and application verification report
 
-Verified on **23 October 2026**, using the client's Asia/Bangkok date context.
-This report describes local execution, not a public deployment or production
-load test. All ten requested development milestones have local Git checkpoints.
+Verified on **24 October 2026** (Asia/Bangkok). This was a refactor of the existing
+application, with no intended website, game-rule, authentication, or API-response
+change. No public deployment or remote Git push was performed.
 
-## Completed
+## Final AI structure and responsibilities
 
-Implemented the React/Vite website, reusable cards/hands/table/assistant/lobby,
-registration/login/logout, protected profile/history/statistics, server-authoritative
-single-player with 0–2 neural bots, and Socket.IO rooms with 2–4 humans. The backend
-uses the existing Atlas configuration; real connection and persistence were tested.
-
-Implemented six-deck crypto shuffling, Ace scoring, natural precedence, HIT/STAND,
-automatic ending at 21/bust, dealer S17, and win/loss/push resolution. Snapshots hide
-the dealer card/total and remaining shoe until permitted. Actions require identity,
-membership, correct turn, round ID, revision, and an available mutation lock.
-
-Both AI features use the same genuinely trained expanded model through FastAPI.
-The dealer is fixed-rule. A Python outage pauses a bot or reports advice failure;
-there is no substitute strategy. Explanations disclose reference disagreement.
-
-Completed ten learning chapters, 36 defense questions/answers, a 15-week hands-on
-team plan, API/event documentation, placeholder environment examples, and exact
-setup/test/build commands. Source is formatted JavaScript/JSX/CSS, not TypeScript.
-
-## Executed verification
-
-| Command/check | Actual final result | What it verifies |
-| --- | --- | --- |
-| `npm test` | **30 passed, 0 failed** | 21 engine cases plus account/API logic with isolated test repository, AI-outage/retry behavior, stale/duplicate moves, persistence retry, host/reconnect policy, real local Socket.IO clients |
-| `npm run test:ai` | **23 passed** | Actual .pt loading, shared preprocessing, output mapping, legal/invalid states, >6 cards, original/incompatible/missing models, actual disagreements, entire-domain TensorFlow/PyTorch parity, original file hashes |
-| `npm run test:database` | **2 passed** | Real configured Atlas and FastAPI: temporary registration/login, bcrypt storage, private records, actual bot/advice integration, durable history/stats, duplicate save prevention, 50% win-percentage calculation; actual >6-card bot and assistant inference |
-| `npm run test:browser` | **2 passed** | Headless installed Chrome against all running services: real registration, advice without automatic action, two bots, saved history/profile, logout, 390px overflow check, independent-account rooms, synchronized turns, replay/leave |
-| `npm run build` | **Passed** | Vite 7.3.7 production build, 79 modules; final JS about 327.43 kB (103.46 kB gzip), CSS 17.88 kB (4.75 kB gzip) |
-| `npm audit --omit=dev --json` | **0 reported vulnerabilities** | npm advisory check for installed production dependencies at verification time |
-| `git diff --check` | **Passed** | No whitespace errors in pending source changes |
-| Original SHA-256 checks | **Passed** | Original training script and both original checkpoints remain unchanged |
-| Environment tracking check | **Passed** | `backend/.env` is ignored; only placeholder `.env.example` files are tracked |
-| Secret-copy check | **Passed** | Neither the configured MongoDB URI nor JWT secret occurs in tracked files or the compiled frontend; values were compared only in-process and not printed |
-| Documentation checks | **Passed** | Ten learning chapters, at least 25 defense questions (actual 36), existing relative file links |
-
-There are **57 passing automated cases across the four suites**. This is a count
-of test cases, not a coverage percentage. No code-coverage or concurrency-load
-percentage was measured. Test runtime varies by machine/network.
-
-Setup commands actually executed included `npm install --no-fund --no-audit`,
-`npm install --save-dev @playwright/test prettier --no-fund --no-audit`,
-`python3 -m pip install --target .tools uv`, the workspace-local `uv python install
-3.12 --install-dir .tools/python --cache-dir .tools/cache --no-bin`, Python 3.12
-`-m venv ai-service/.venv`, and `uv pip install --python ai-service/.venv/bin/python
---cache-dir .tools/cache -r ai-service/requirements-training.txt`. Local inspection
-also used `rg`, `git status`, `git log`, safe environment-key checks, DOCX ZIP/XML
-extraction, and weights-only checkpoint loading. Private values were never shell
-arguments. `npm ci` in the README is the clean-checkout reproduction command,
-not a claim that the original installation used it.
-
-The Python suite emits one installed Starlette/TestClient deprecation warning
-about `httpx` support in favor of `httpx2`; the pinned test environment still passes.
-Chrome's runner also printed a color-environment warning; it did not fail tests.
-Screenshots were inspected at desktop and mobile sizes. Generated screenshots/
-traces are local ignored artifacts under `test-results/`.
-
-## What used real services versus test fixtures
-
-`backend/tests/helpers.js` is explicitly test-only in-memory account/result storage.
-The default account/route unit tests use that repository to isolate behavior.
-Some service unit tests use a clearly labeled fixed prediction to test turn
-control or failure recovery, not model performance.
-
-Production `server.js` always connects the actual database service; it never
-falls back to fake storage. The separate opt-in database integration suite uses
-Atlas and real FastAPI predictions. The large-hand inference case uses an isolated
-test repository for state control and the **real running model**. Python tests
-load genuine saved weights. Browser flows register temporary real Atlas accounts
-and use real Express/FastAPI services. Temporary users/results are deleted by
-exact created IDs; unrelated account data is not modified.
-
-The Socket.IO test uses actual authenticated network clients on ephemeral local
-ports, including a rejected unauthenticated connection and five account sessions
-to verify four-seat capacity. A deterministic supplied test shoe prevents random
-initial naturals from skipping turn/privacy assertions. Production does not allow
-clients to supply a shoe.
-
-## Actual model evaluation
-
-Training command executed:
-
-```sh
-ai-service/.venv/bin/python ai-service/train_expanded.py --epochs 600
+```text
+ai-service/
+├── blackjack_ai_api.py
+├── model.py
+├── train.py
+├── models/
+│   ├── blackjack_nn.pt
+│   ├── blackjack_nn.keras
+│   └── evaluation.json
+├── tests/
+│   ├── conftest.py
+│   └── test_model.py
+├── requirements.txt
+└── requirements-lock.txt
 ```
 
-Training really ran in TensorFlow 2.21.0 on Python 3.12.15; inference/export used
-PyTorch 2.14.1 and NumPy 2.5.4. The exact installed Python packages are recorded
-in `ai-service/requirements-lock.txt`.
+Study `model.py` for legal states, reference labeling, preprocessing, the network,
+model loading, and conversion utilities. Study `train.py` for actual TensorFlow
+training and measured evaluation. Study `blackjack_ai_api.py` for validated HTTP
+prediction requests and startup loading. TensorFlow is imported only for training
+or parity tests, not when the API starts.
+
+The additional `conftest.py` is a small test-import setup file for the hyphenated
+AI directory; it has no model logic. The lockfile pins the tested environment and
+is included by `requirements.txt`, giving one installation command. Generated
+`.venv` and cache directories are ignored and are not source files to maintain.
+
+## Changes made
+
+- Merged the useful architecture, strategy labeling, scoring, legal-state
+  generation, preprocessing, splitting, conversion, and loading utilities into
+  `model.py`. Removed the unused legacy experiment entry point.
+- Replaced the former expanded-only training entry point with `train.py`, which
+  trains the same architecture and exports a fully compatible checkpoint directly.
+- Moved the working serving artifacts into `ai-service/models/` byte-for-byte,
+  replacing retired duplicates. Removed the nested model directory.
+- Removed optional offline simulation code/results. Classification evaluation,
+  actual inference tests, and real gameplay integration tests remain available.
+- Removed legacy-only evaluation fields, the separate training requirements
+  entry point, and the unnecessary AI environment example. `MODEL_PATH` remains
+  an optional process environment override with a documented default.
+- Kept the exact serving-model training metrics, plus fingerprints of the final
+  checkpoint pair. Added useful captured-prediction, metadata, finite-weight,
+  load-once, evaluation-consistency, and temporary-training regressions.
+- Updated README, AI learning chapter, affected defense answers, project overview,
+  engine notes, API reference, development log, and team schedule. The historical
+  university proposal DOCX was not edited.
+
+There are no active imports or executable instructions for removed modules.
+Prior implementations can be reviewed through Git history without maintaining
+archives in the source tree. Frontend/backend application source, npm scripts,
+components, and styling were not changed by this refactor.
+
+## Model behavior preservation
+
+Before changing files, the current serving PyTorch checkpoint was run on all
+**2,190** evaluated feature states. Raw states, labels, scores, and actions were
+captured in a temporary NumPy artifact. After consolidation/relocation, the same
+comparison was executed using `model.make_dataset`, `normalize`, and `load_model`.
+
+| Comparison | Actual result |
+| --- | --- |
+| Feature tuples and ordering | Identical, all 2,190 |
+| Reference labels | Identical, all 2,190 |
+| Predicted actions | Identical, all 2,190 |
+| Maximum absolute pre/post score difference | **0.0** |
+| Serving `.pt` bytes | Identical to the pre-refactor serving checkpoint |
+| Serving `.keras` bytes | Identical to the pre-refactor serving checkpoint |
+| Serving weights retrained/replaced | **No** |
+
+The capture/comparison files were temporary verification inputs, not an additional
+model implementation or permanent dataset to maintain. Representative captured
+scores are retained in automated regression tests, and `evaluation.json` stores
+hashes for both shipped artifacts. Those hashes are:
+
+```text
+blackjack_nn.pt
+9801f1bb3c9f48205aaceb605399247d44eeb38a6cee67b7447aa809555f165e
+blackjack_nn.keras
+ebd37827a09752782c23677729c9fc370af991309a3d5e7672b08ba542df262e
+```
+
+The preserved architecture is 4 → 16 ReLU → 8 ReLU → 2 Softmax, 234 trainable
+parameters. Input order is total/upcard/usable-Ace/count; divisors are
+`[21,11,1,20]`. Index 0 is STAND; index 1 is HIT. Legal non-busting coverage is
+2–20 cards. Live predictions still run real PyTorch forward propagation.
+
+## Preserved training evidence
+
+These are the measured results of the serving model's recorded training run,
+not results invented or newly obtained by retraining during cleanup:
 
 | Measure | Recorded value |
 | --- | --- |
-| Architecture | 4 → 16 ReLU → 8 ReLU → 2 Softmax |
-| Parameters | 234 |
 | Seed / epochs | 42 / 600 |
-| Reachable distinct feature tuples | 2,190 |
-| Train / validation / test | 1,532 / 329 / 329 |
-| Expanded scaling | `[21,11,1,20]` |
-| Supported hand count | 2–20; a next decision needs at most 19 |
-| Held-out reference-label agreement | 327/329 = **99.3921%** |
-| Held-out cross-entropy | **0.02203259** |
+| Distinct reachable feature tuples | 2,190 |
+| Train / validation / test states | 1,532 / 329 / 329 |
+| Held-out agreement with reference labels | 327/329 = **99.3921%** |
+| Held-out cross-entropy loss | **0.02203259** |
 | All-state reference agreement | 2,186/2,190 = **99.8174%** |
-| All-state model/reference disagreements | **4** |
-| Maximum TensorFlow/PyTorch score difference | **1.1920928955078125e-7** |
-| TensorFlow/PyTorch actions | Identical for all 2,190 states |
+| All-state reference disagreements | 4 |
+| Recorded maximum TensorFlow/PyTorch score difference | **1.1920928955078125e-7** |
+| TensorFlow/PyTorch actions | Identical across all states |
 
-Held-out confusion matrix (rows truth STAND/HIT, columns model STAND/HIT):
+The held-out confusion matrix has rows truth STAND/HIT and columns predicted
+STAND/HIT:
 
 ```text
 216   0
   2 111
 ```
 
-The four full-domain disagreements are:
-
-| Total | Dealer | Usable Ace | Cards | Model | Reference |
+| Total | Upcard | Usable Ace | Cards | Network | Reference |
 | --- | --- | --- | --- | --- | --- |
 | 12 | 3 | 0 | 9 | STAND | HIT |
 | 12 | 3 | 0 | 10 | STAND | HIT |
 | 12 | 3 | 0 | 11 | STAND | HIT |
 | 12 | 4 | 0 | 2 | HIT | STAND |
 
-Raw results: [evaluation JSON](../ai-service/models/expanded/evaluation.json).
-The stratified split uses class, not card count; the held-out partition happens
-to contain no 20-card tuple. Whole-domain parity and direct API tests cover that
-terminal count. Accuracy is reference imitation, not win probability, and scores
-were not calibrated. Enumeration weights rare and common feature tuples equally.
+The API retains the network's action and discloses these disagreements. Scores
+are model preferences, not probabilities of winning. Per-card held-out evidence
+and tested framework versions remain in [evaluation.json](../ai-service/models/evaluation.json).
+The split is stratified by label, not card count; its held-out partition contains
+no 20-card tuple. Direct API and whole-domain parity tests cover that terminal
+count. No model optimality, calibration, human learning benefit, or new win-rate
+result is claimed.
 
-Offline simulation command executed:
+## Executed checks after cleanup
 
-```sh
-ai-service/.venv/bin/python ai-service/evaluate_simulation.py
-```
+| Command/check | Result | Evidence |
+| --- | --- | --- |
+| `npm test` | **30 passed, 0 failed** | Engine, isolated accounts, game-service errors/retries, actual local Socket.IO clients, privacy, turn/revision checks, disconnect policy |
+| `npm run test:ai` | **40 passed, 0 failed** | Real artifacts, captured scores, strict inputs, >6 cards, metadata/finite-weight failures, load-once lifecycle, actual disagreements, complete-domain TensorFlow/PyTorch parity, report/hash consistency, real temporary training/export |
+| `npm run build` | **Passed** | Vite 7.3.7 built 79 modules; output asset names/sizes match the unchanged frontend |
+| `npm run test:database` | **2 passed, 0 failed** | Real Atlas/FastAPI account and persistence checks; shared-model bots and human advice; actual >6-card inference |
+| `npm run test:browser` | **2 passed, 0 failed** | Existing Chrome flows for accounts, real advice/bots, profile/history, logout, mobile layout, two-user synchronized multiplayer, replay and leave |
+| `python -m pip check` using the project interpreter | **Passed** | No broken requirements in the installed virtual environment |
+| `python ai-service/train.py --help` using the project interpreter | **Passed** | Training CLI imports and argument setup work |
+| Live `GET /health` | **HTTP 200** | Loaded final checkpoint, 234 parameters, 2–20-card range, same dataset version |
+| Live `POST /predict` for soft 18, upcard 10, seven cards | **HTTP 200** | Actual HIT prediction with real model scores, reference comparison, explanation, and score warning |
+| Pre/post complete-domain prediction comparison | **Passed** | Same 2,190 states/labels/actions, maximum score difference 0.0 |
 
-For 10,000 seeded rounds per policy, fresh six-deck shoe each round, the model
-recorded **4,325 wins / 4,832 losses / 843 pushes** (43.25% win fraction). Reference
-recorded **4,333 / 4,824 / 843**. Largest observed player hand was seven cards.
-The policies start with the same random seed but different decisions change card
-consumption. These observations do not establish statistical superiority or future
-performance. See [simulation JSON](../ai-service/models/expanded/simulation.json).
-Rare larger hands are additionally tested with deterministic legal sequences.
+There are **74 passing cases across the four automated suites**. This is a test
+count, not a code-coverage percentage. The one-epoch training/export test writes
+only to pytest's temporary directory; its experiment metrics do not replace the
+600-epoch serving model's report. It proves the refactored training pipeline can
+run and export compatible real weights without relying on removed modules.
 
-## Preservation and configuration
+The Python suite reports installed dependency deprecations: Starlette's httpx
+TestClient compatibility and Keras/NumPy array-copy handling during export. They
+are warnings, not failed checks; no warnings were hidden to claim a clean run.
+Browser output may contain the existing color-environment warning.
 
-Original SHA-256 values checked before and after work:
+An initial Atlas startup attempt failed with a sanitized message. The diagnostic
+retry connected and initialized indexes successfully, and the real integration
+suite passed without changing private configuration. Subsequent Express startup
+and browser checks used that actual database connection.
 
-```text
-blackjack_nn.py
-525c4a5938a3e34a07ff7c71a824eb4e53156083fd1e9ba9eceaa139823ae686
-models/blackjack_nn.pt
-19c95c28099b48d944f0fd2e16a1ced0b9f129d43176a2fe1d2c8b085c45405d
-models/blackjack_nn.keras
-2350205531509ac124ce008ee6860d1d3be2565bb4ddb3327378e0b760c00ba4
-```
+The first browser run passed multiplayer but found a timing issue in the existing
+single-player test: after an immediate natural Blackjack, it could inspect the
+previous completed round before a new deal finished. The test now waits for that
+deal's actual HTTP response and matching actionable/finished UI state. Both flows
+passed on rerun. This fixes test synchronization without changing website code.
 
-The proposal DOCX is preserved. Its readable text supported architecture and scope
-decisions. Private `.env` values were not printed, changed, staged, or committed.
-Existing configuration was used in-process for local Atlas integration. New model
-artifacts are under `models/expanded/`; original weights were not replaced.
+## Test isolation and unchanged website behavior
 
-## Problems found and resolved
+Default JavaScript account/service tests use explicitly labeled isolated storage
+and, where appropriate, prediction fixtures to test turn control. Production
+`server.js` always uses Atlas and does not fall back to fake data or decisions.
+The separate database suite uses actual Atlas/FastAPI where applicable. Its
+large-hand state fixture controls the hand but calls the actual model. Browser
+flows use independent accounts and real running services, with created test
+records cleaned by exact IDs.
 
-Initial sandbox networking/listening checks failed due to environment permissions;
-reruns with approved local/network access passed. Python 3.14 lacked the suitable
-training environment, so an isolated workspace Python 3.12 runtime and `.venv`
-were installed rather than changing the user's global Python.
+Both intelligent features still use the same backend AI client and `/predict`
+endpoint. Bots automatically apply the model's legal action. Human advice never
+acts automatically. The dealer remains deterministic S17. Authentication,
+registration/login, JWT validation, private records, history/statistics, up to
+two bots, and real-time rooms for 2–4 humans keep their existing contracts.
+An AI outage remains visible; no rule-based/random substitution was added.
 
-The initial frontend proxy assumed a default backend port, which differed from
-the existing configuration. Vite now selects only the backend port in its Node
-configuration. A real Chrome run found input hints interfering with exact
-accessible labels; explicit label/hint associations fixed this. Logout navigation
-was made consistently `/login`. Overlapping early browser runner attempts also
-collided over artifact files; the final documented run was one runner/worker and
-passed. Failed exploratory runs are not counted as successful verification.
+Private `.env` files were not edited, printed, staged, or committed. Placeholder
+configuration remains server-side. Secret/ignore checks and stale-reference/link
+checks are part of final source review. The proposal DOCX is unchanged.
 
-Review found a room could otherwise lose an unsaved result when its final member
-left. The final code retains that room and asks for saving retry. Additional
-regression tests cover the behavior. Mongoose's deprecated update option was
-changed to `returnDocument: 'after'`.
+## Run, train, and test commands
 
-## Remaining limitations and unperformed work
-
-No required local gameplay/account feature remains known broken after the final
-checks. That statement is limited to executed tests and inspection; it does not
-claim an exhaustive security audit.
-
-- No public deployment, HTTPS/reverse-proxy setup, or multi-server hosting was performed.
-- Active rooms, games, and locks are in one process. Restart resets active state;
-  a failed-save result can be lost on restart. Completed committed data persists.
-- No persistent idle-game expiration, turn timer, or durable event replay. A user
-  who remains connected can wait indefinitely. One single-player snapshot per
-  account remains in memory until replacement/restart.
-- Disconnect stands the unfinished hand immediately. There is no grace window,
-  and navigating away from the multiplayer page disconnects that page's socket.
-- No password-reset/email-verification/account-editing features; not part of the
-  required account scope. Logout intentionally revokes all sessions for that user.
-- No real-device/screen-reader study, broad cross-browser matrix, high-load test,
-  or public network resilience test was performed. Chrome desktop and 390px
-  viewport checks are the measured browser evidence.
-- The small model disagrees with four reference cases, has no card-composition
-  input, and is not proven optimal or a win predictor. No user-study improvement
-  or confidence-calibration result is claimed.
-- The original proposal DOCX still describes its proposal-stage status. Learning
-  guides and this report describe implementation; final university submission
-  editing of the DOCX remains a separate task.
-
-## Run the delivered application
-
-The full [README](../README.md) contains setup, configuration, and commands. With
-installed dependencies, start Python in one terminal:
+From the repository root, for a new checkout only:
 
 ```sh
-cd ai-service
-source .venv/bin/activate
-python -m uvicorn blackjack_ai_api:app --host 127.0.0.1 --port 8000
+npm ci
+python3.12 -m venv ai-service/.venv
+source ai-service/.venv/bin/activate
+python -m pip install -r ai-service/requirements.txt
 ```
 
-From the repository root in a second terminal:
+An existing checkout only needs activation, not a new virtual environment or
+reinstallation before every run. Keep the existing private backend configuration.
+The complete setup instructions are in the [README](../README.md).
+
+Start Python in one terminal:
+
+```sh
+source ai-service/.venv/bin/activate
+python -m uvicorn blackjack_ai_api:app --app-dir ai-service --host 127.0.0.1 --port 8000
+```
+
+Start Express and React together from the repository root in another terminal:
 
 ```sh
 npm run dev
 ```
 
-Open `http://localhost:5173`, register, and play. Use separate browser sessions
-for different multiplayer accounts. Do not start duplicate servers on occupied
-ports. Verification servers are stopped after the final checks; these commands
-restart them. Local Git commits record milestones; nothing was pushed remotely.
+Open `http://localhost:5173` using the hostname allowed in `CLIENT_ORIGIN`.
+For multiplayer, use separate browser sessions for separate accounts.
+
+```sh
+npm test
+npm run test:ai
+npm run build
+# FastAPI must be running for database/model integration:
+npm run test:database
+# All three services must be running for browser tests:
+npm run test:browser
+```
+
+To study training without replacing the serving model:
+
+```sh
+python ai-service/train.py --epochs 600 --output /tmp/blackjack-model-experiment
+```
+
+Without `--output`, training deliberately writes `.keras`, `.pt`, and evaluation
+JSON into `ai-service/models/`. Restart FastAPI when deliberately deploying new
+weights. Tests and normal gameplay never modify these serving files.
+
+## Remaining limitations
+
+- This remains a single-server local application. Active games, rooms, locks, and
+  failed-save results are in process memory and can be lost on restart; committed
+  completed history persists in Atlas. No multi-server coordination was added.
+- Last-socket disconnect stands the unfinished human hand immediately. There is
+  no grace timer, turn timer, or idle-game expiry. Reconnecting does not reopen a
+  stood hand. These existing policies are unchanged.
+- No public deployment, production load test, comprehensive security audit,
+  screen-reader study, or broad browser/device matrix was performed.
+- Four model/reference disagreements remain. Training labels do not capture the
+  full shoe composition; scores are not calibrated winning probabilities.
+- The serving model was not retrained during cleanup. A fresh 600-epoch training
+  reproduction was not executed as part of this refactor; the one-epoch temporary
+  training/export smoke test was executed. Hardware/framework changes may affect
+  future training reproducibility even with the same seed.
+- The university proposal remains a historical document. Updating it for a final
+  submission is separate from maintaining the current learning guides/report.
+
+Verification servers are stopped after checks so the documented startup commands
+can reuse their ports. Check Git history for the source before cleanup rather
+than looking for retired experiments in the active AI directory.

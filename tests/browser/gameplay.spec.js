@@ -57,18 +57,30 @@ test("browser: register, real assistant, bot round, saved profile, mobile layout
   await page.getByLabel("Neural network tablemates").selectOption("2");
   let analyzed = false;
   for (let attempt = 0; attempt < 5; attempt += 1) {
+    // A natural can finish immediately. Wait for this deal's response so the
+    // previous round's still-visible result is not mistaken for the new round.
+    const dealResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/games/single") &&
+        response.request().method() === "POST",
+    );
     await page
       .getByRole("button", {
         name: attempt === 0 ? "Deal my first hand →" : "Deal next round →",
         exact: true,
       })
       .click();
+    const response = await dealResponse;
+    expect(response.status()).toBe(201);
+    const { game } = await response.json();
+    expect(game.aiError).toBeNull();
     await expect(page.locator(".table-surface")).toBeVisible();
     const analyze = page.getByRole("button", {
       name: "Analyze my hand",
       exact: true,
     });
-    if (await analyze.isEnabled()) {
+    if (game.status === "playing") {
+      await expect(analyze).toBeEnabled();
       await analyze.click();
       await expect(
         page.getByText("MODEL RECOMMENDS", { exact: true }),
@@ -76,6 +88,10 @@ test("browser: register, real assistant, bot round, saved profile, mobile layout
       analyzed = true;
       await expect(page.getByText("Your move", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: /^Stand/ }).click();
+    } else {
+      await expect(
+        page.getByRole("button", { name: "Deal next round →", exact: true }),
+      ).toBeEnabled();
     }
     await expect(
       page.getByText("Result saved to your history.", { exact: true }),

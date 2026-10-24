@@ -158,29 +158,14 @@
       "reference": "STAND"
     }
   ],
-  "original_model_inspection": {
-    "parameters": 234,
-    "scales": [
-      21.0,
-      11.0,
-      1.0,
-      6.0
-    ],
-    "labels": [
-      "STAND",
-      "HIT"
-    ],
-    "max_tensorflow_pytorch_difference": 1.1920928955078125e-07
-  },
   "versions": {
     "tensorflow": "2.21.0",
     "torch": "2.14.1",
     "numpy": "2.5.4"
   },
-  "original_sha256": {
-    "blackjack_nn.py": "525c4a5938a3e34a07ff7c71a824eb4e53156083fd1e9ba9eceaa139823ae686",
-    "models/blackjack_nn.pt": "19c95c28099b48d944f0fd2e16a1ced0b9f129d43176a2fe1d2c8b085c45405d",
-    "models/blackjack_nn.keras": "2350205531509ac124ce008ee6860d1d3be2565bb4ddb3327378e0b760c00ba4"
-  },
-  "interpretation": "Accuracy measures imitation of reference labels, not win rate. Enumeration covers reachable feature tuples, not shoe compositions. Test tuples are disjoint from training. This finite feature domain is not evidence of optimality."
+  "interpretation": "Accuracy measures imitation of reference labels, not win rate. Enumeration covers reachable feature tuples, not shoe compositions. Test tuples are disjoint from training. This finite feature domain is not evidence of optimality.",
+  "artifact_sha256": {
+    "blackjack_nn.pt": "9801f1bb3c9f48205aaceb605399247d44eeb38a6cee67b7447aa809555f165e",
+    "blackjack_nn.keras": "ebd37827a09752782c23677729c9fc370af991309a3d5e7672b08ba542df262e"
+  }
 }

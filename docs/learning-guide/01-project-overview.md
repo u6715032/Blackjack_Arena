@@ -15,7 +15,7 @@ flowchart LR
     Express --> Engine[Blackjack engine]
     Express <-->|Limited four-feature requests| Python[FastAPI + PyTorch]
     Express <-->|Mongoose| Database[(MongoDB Atlas)]
-    Training[Offline TensorFlow training] --> Models[Expanded .keras and .pt]
+    Training[Offline TensorFlow training] --> Models[Trained .keras and .pt]
     Models --> Python
 ```
 
@@ -46,7 +46,7 @@ hidden dealer card stay inside the backend until the round finishes.
 3. `backend/src/services/games.js`: connect turns, bots, rooms, and saving.
 4. `backend/src/routes/index.js` and `sockets.js`: network entry points.
 5. `frontend/src/pages/SinglePlayer.jsx` and `components/GameTable.jsx`: display and actions.
-6. `ai-service/expanded_states.py`, training, and API: the machine-learning path.
+6. `ai-service/model.py`, `train.py`, and `blackjack_ai_api.py`: the machine-learning path.
 
 The original proposal describes intended work. The verification report describes
 what was actually executed. Keep those separate in your final report.

@@ -1,6 +1,3 @@
-fastapi>=0.115,<1
-uvicorn>=0.34,<1
-torch>=2.6,<3
-numpy>=2,<3
-pytest>=8,<10
-httpx>=0.28,<1
+# One tested environment for the API, TensorFlow training, and automated tests.
+# Direct tools: FastAPI, Uvicorn, NumPy, PyTorch, TensorFlow, pytest, and httpx.
+-r requirements-lock.txt

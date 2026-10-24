@@ -72,7 +72,7 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
 11. **Why normalize features?**
     Features have different numerical ranges. Fixed scaling keeps their input
     sizes comparable. The exact same preprocessing must be used in training
-    and deployment; the expanded scales are `[21,11,1,20]`.
+    and deployment; the scales are `[21,11,1,20]` in `model.py`.
 
 12. **Explain the 234 parameters.**
     First dense layer: `4×16+16=80`. Second: `16×8+8=136`. Output:
@@ -103,12 +103,12 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     copies biases; full-domain output/action comparisons verify equivalence.
 
 18. **How did you fix the six-card limit?**
-    We preserved original artifacts, enumerated reachable larger-hand states,
-    retrained the same architecture in TensorFlow with count scaling by 20,
-    exported new PyTorch weights, and validated metadata and numerical parity.
-    We did not clip inputs or fabricate weights.
+    The final data generator in `model.py` enumerates reachable states through
+    twenty cards and normalizes card count by twenty. The shipped model was
+    trained on that domain in TensorFlow and converted to PyTorch. During code
+    cleanup we retained its weights and verified all 2,190 actions and scores.
 
-19. **Why is the expanded maximum twenty cards?**
+19. **Why is the maximum twenty cards?**
     A non-busting 21-card hand would need all Aces. The game automatically
     stops at soft 21 after eleven Aces, so that sequence cannot reach 21 cards.
     A 20-card terminal hand is reachable with nineteen Aces and a 2 in a valid
@@ -121,14 +121,14 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     generalization evidence.
 
 21. **What accuracy did you actually measure?**
-    The recorded expanded model got 327/329 held-out labels correct: 99.39%,
+    The recorded model got 327/329 held-out labels correct: 99.39%,
     loss 0.02203. Whole-domain reference agreement is 2186/2190. The evaluation
     JSON includes counts, confusion matrix, per-card results, and disagreements.
 
 22. **Does 99.39% mean a 99.39% chance to win?**
-    No. It is agreement with reference labels. In a separate seeded simulation
-    the model won 4325 of 10000 rounds, lost 4832, and pushed 843. Those are
-    measured simulator outcomes, not promises or evidence of superiority.
+    No. It is agreement with reference labels, not a win-rate measurement.
+    Card draws are uncertain, and choosing the reference action can still lose
+    a round. We do not present Softmax scores or accuracy as winning probabilities.
 
 23. **Can your assistant explain what neurons are thinking?**
     No. It compares the actual network output with reference rules and states
@@ -192,8 +192,9 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
 
 35. **What tests ran, and which parts used real services?**
     Thirty JavaScript tests cover the engine, isolated account logic, service
-    failures, and actual local Socket.IO clients. Twenty-three Python tests use
-    real model files. Two opt-in integration tests use real FastAPI and Atlas
+    failures, and actual local Socket.IO clients. Forty Python tests cover real
+    model files, API behavior, and temporary training/export. Two opt-in integration
+    tests use real FastAPI and Atlas
     where applicable. Two Chrome flows use the running application and real
     database. The verification report distinguishes these layers.
 

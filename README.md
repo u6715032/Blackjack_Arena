@@ -54,12 +54,13 @@ Install Node.js 22.12+ and Python 3.12. Use the lockfiles for reproducibility.
 npm ci
 python3.12 -m venv ai-service/.venv
 source ai-service/.venv/bin/activate
-python -m pip install -r ai-service/requirements-lock.txt
+python -m pip install -r ai-service/requirements.txt
 ```
 
-The Python lockfile contains the exact training/testing environment. For a smaller
-inference installation, use `ai-service/requirements.txt`. For compatible unpinned
-training dependencies use `ai-service/requirements-training.txt`.
+There is one Python installation command for serving, training, and tests.
+`requirements.txt` includes the exact versions in `requirements-lock.txt`; you
+do not need to study or install that second file separately. Reuse your existing
+virtual environment: create it once, then activate it in each new terminal.
 On Windows activate with `ai-service\.venv\Scripts\activate`; run Python tests
 with `python -m pytest ai-service/tests -q` instead of the POSIX npm helper.
 
@@ -90,7 +91,8 @@ It stops with a sanitized message if the database cannot be reached.
 An optional `frontend/.env` can set `BACKEND_PROXY_TARGET` from its example. Do not
 put secrets in frontend files or variables prefixed `VITE_`. `MODEL_PATH` is an
 optional Python **process environment** setting, not an automatically loaded
-Python `.env` file. It must point to a compatible expanded checkpoint.
+Python `.env` file. It must point to a compatible checkpoint; the default is
+`ai-service/models/blackjack_nn.pt`. No AI-service environment file is needed.
 
 ## Tests and build
 
@@ -125,23 +127,31 @@ the production server never substitutes an in-memory database for Atlas.
 
 ## Neural network
 
-The original `ai-service/blackjack_nn.py`, `models/blackjack_nn.pt`, and
-`models/blackjack_nn.keras` are unchanged. Their original 2–6-card experiment can
-still be studied independently. The website uses separately trained artifacts in
-`ai-service/models/expanded/` with card-count scaling by 20 instead of 6.
+There is one final neural network implementation and one pair of trained model
+files in `ai-service/models/`. During the cleanup, the serving checkpoints were
+moved byte-for-byte and all 2,190 feature-state predictions were compared before
+and after: actions and scores were identical. No serving weights were retrained.
+
+Study these three Python files:
+
+- `model.py`: reachable data, reference labels, normalization, both framework
+  architectures, checkpoint loading, and verified export utilities.
+- `train.py`: offline TensorFlow training and measured evaluation/export.
+- `blackjack_ai_api.py`: validated FastAPI requests and actual PyTorch inference.
 
 ```sh
 # With the Python environment active, from the repository root:
-python ai-service/train_expanded.py --epochs 600
-python ai-service/evaluate_simulation.py
+python ai-service/train.py --epochs 600 --output /tmp/blackjack-model-experiment
 ```
 
-Retraining replaces **only the expanded artifacts**, so copy those elsewhere first
-if you want to compare experiments. Training never runs during normal gameplay.
+The example writes a separate training experiment. Omitting `--output` deliberately
+replaces the three files in `ai-service/models/`; restart FastAPI to load new
+weights. Training never runs during normal gameplay. The Python tests run one
+training epoch in a temporary folder to check that training/export still works.
 The architecture remains 4 → 16 → 8 → 2 with 234 parameters. Both intelligent
 features call the same model. The dealer always uses fixed rules.
 
-The expanded model covers every reachable non-busting feature tuple under this
+The model covers every reachable non-busting feature tuple under this
 implementation's automatic stop at 21. It accepts 2–20 cards, including terminal
 20-card states. At most 19 cards can require a next decision. A 21-card
 non-busting hand would have to be 21 Aces; that sequence would already stop at
@@ -172,11 +182,13 @@ backend/src/
   services/             Database, games/rooms, internal AI requests
   sockets.js            Authenticated real-time event handlers
 ai-service/
-  blackjack_nn.py       Original training script, preserved
-  blackjack_ai_api.py   Startup loading and validated PyTorch prediction
-  expanded_states.py    Reachable training states and shared preprocessing
-  train_expanded.py     Expanded TensorFlow training and verified export
-  evaluate_simulation.py Offline gameplay evaluation
+  model.py              Shared data, labels, normalization, networks, model utilities
+  train.py              TensorFlow training, evaluation, verified PyTorch export
+  blackjack_ai_api.py    Startup loading and validated PyTorch prediction
+  models/               One .keras, one .pt, and evaluation.json
+  tests/                Model, API, preprocessing, parity, and training/export tests
+  requirements.txt      One installation entry point
+  requirements-lock.txt Exact tested Python package versions
 docs/learning-guide/    Ten teaching chapters and defense preparation
 ```
 

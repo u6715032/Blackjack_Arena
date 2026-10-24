@@ -73,7 +73,7 @@ The dealer total is `null` while hidden because it would reveal information.
 
 ## More than six cards
 
-The scoring and dealing engine imposes no six-card limit. The model's expanded
+The scoring and dealing engine imposes no six-card limit. The model's
 dataset contains reachable states up to 20 cards. A player cannot request another
 move after 21; that rule limits nonterminal hands to 19 cards. See chapter 07 for
 why an apparent 21-Ace example cannot occur through legal actions.
