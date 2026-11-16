@@ -45,8 +45,11 @@ might have predicted for a terminal state.
 
 `singleAdvice` or `roomAdvice` verifies the human's active turn and current round
 revision, asks the same model, and returns the recommendation tagged with that
-round/revision. It never calls a HIT/STAND function. The frontend clears advice
-after state changes and displays a deliberate “Play hit/stand” button. Clicking
+round/revision. The prediction itself never plays a human move. `roomAdvice`
+first enforces an already-expired turn deadline; that normal automatic STAND
+comes from the timer, not from the network. Advice does not reset the 30-second
+multiplayer deadline. The frontend clears advice after state changes and displays
+a deliberate “Play hit/stand” button. Clicking
 that button is an ordinary human action and is checked again by the backend.
 
 ## What the explanation means

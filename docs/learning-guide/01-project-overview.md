@@ -2,7 +2,8 @@
 
 Blackjack Arena lets a person play simplified Blackjack, invite friends into a
 private table, and study HIT/STAND recommendations from a small trained network.
-Accounts keep personal history and win/loss/push totals. Nothing represents money.
+Accounts keep their latest 20 round records and lifetime win/loss/push totals.
+Nothing represents money.
 
 Think of three running programs and one database. React draws the website.
 Express owns game rules and identity. FastAPI runs the saved neural network.
@@ -53,7 +54,10 @@ what was actually executed. Keep those separate in your final report.
 
 ## Exercise
 
-Start the three services. Open the browser's Network tab, register, and deal a
+Start all three services with `npm run dev` from the repository root; this uses
+the existing Python virtual environment through `dev:all`. Press Ctrl+C to stop
+them together. Individual service commands remain in the README.
+Open the browser's Network tab, register, and deal a
 round with zero bots. Find `/api/games/single` and inspect its response. Confirm
 that the second dealer card is `{ "hidden": true }` and that no `shoe` property
 exists. Stand, then observe when the complete dealer hand becomes visible.

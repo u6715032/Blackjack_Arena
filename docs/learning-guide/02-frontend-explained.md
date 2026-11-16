@@ -29,6 +29,7 @@ can follow the table without opening dozens of files:
 | `ActionButtons` | HIT/STAND controls |
 | `GameResult` | Personal round outcome and save status |
 | `StrategyAssistant` | Request and display advice |
+| `TurnCountdown` | Display the server deadline for an active multiplayer turn |
 | `BlackjackTable` | Compose the complete game display |
 
 `Navbar`, `RoomLobby`, and `PlayerList` handle navigation and waiting-room display.
@@ -78,6 +79,17 @@ Multiplayer uses acknowledgements: an emitted event receives `{ok, data}` or
 `{ok:false,error}`. `room:update` broadcasts replace room state in every client.
 Offline buttons cannot queue gameplay moves for a later turn.
 
+`Multiplayer.jsx` estimates the device's clock offset as
+`room.serverTime - Date.now()` when a snapshot arrives. `TurnCountdown` updates its
+display every 250 milliseconds from `game.turnDeadline`, using that offset. It never sends a
+STAND action. The backend enforces expiry, so HIT or a page reload cannot grant
+extra time. Losing the last socket still invokes the existing disconnect stand.
+
+`Profile.jsx` loads `/profile` and `/history` once on mount. It shows the latest
+20 retained rounds, without Previous/Next controls, or an empty state when no
+rounds exist. Statistics cards use the server's lifetime totals, not the table's
+row count.
+
 ## Layout and accessibility
 
 Plain CSS uses dark green surfaces, gold controls, responsive grids, and wrapping
@@ -85,6 +97,13 @@ cards. Media queries adapt to small screens. Text describes whose turn it is;
 color is not the only indication. Form inputs have labels and password/username
 hints use `aria-describedby`. Status and error messages use live regions or
 `role="alert"` where useful. System font fallbacks work when Google Fonts cannot load.
+
+`Home.jsx` keeps the hero title, description, card illustration, footnote, and two
+mode navigation cards. The duplicate hero buttons and bottom learning strip are
+removed. Desktop spacing in `styles.css` is scoped to `.home-page` and its layout
+ancestors, targeting 1366×768 and 1920×1080 viewports without clipping page content.
+Small screens can scroll; the navigation, footer, and other pages retain their
+existing design.
 
 ## Exercise
 

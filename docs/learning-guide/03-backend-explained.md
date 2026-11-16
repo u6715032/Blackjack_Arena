@@ -6,9 +6,15 @@ backend decides whether those actions are legal.
 
 ## Startup and middleware
 
-`server.js` validates private configuration, connects to Atlas, waits for indexes,
-and only then starts listening. `app.js` assembles the reusable application;
-tests can create the same application with an explicitly isolated test repository.
+`npm run dev` delegates to the root `dev:all` script, which starts FastAPI and
+the backend/frontend workspace commands. Those workspace commands do not call
+the root script, so there is no recursion. Individual startup remains available.
+
+`server.js` validates private configuration, connects to MongoDB, waits for indexes,
+and completes existing-history retention cleanup before listening. Cleanup keeps
+the latest 20 records per user while preserving statistics and save receipts.
+`app.js` assembles the reusable application; tests can create the same application
+with an explicitly isolated test repository.
 Production startup always supplies the real MongoDB repository.
 
 Middleware runs before a route handler. This app uses:
@@ -54,6 +60,11 @@ Other requests can arrive during that pause. Therefore `withLock` marks the
 single-player table or room as busy until the operation finishes. A duplicate
 action receives an understandable conflict response. Locks are simple in-memory
 sets, sufficient for one Node process; they are not distributed locks.
+
+For multiplayer only, the game service also owns a 30-second deadline. Expiry uses
+the same room lock and normal engine STAND action; a busy lock causes a short
+retry rather than losing the timeout. HIT keeps the current deadline. See
+[chapter 06](06-multiplayer-explained.md) for synchronization and stale-callback checks.
 
 ## Authentication
 

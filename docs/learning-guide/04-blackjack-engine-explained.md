@@ -71,6 +71,12 @@ request with an earlier revision cannot draw twice. `publicGame` explicitly
 constructs a permitted response and replaces the hidden card with a placeholder.
 The dealer total is `null` while hidden because it would reveal information.
 
+Multiplayer timing belongs to `services/games.js`, not the scoring engine.
+The service publishes `turnDeadline` through `publicGame` only for multiplayer.
+At expiry it calls `applyAction` with STAND, the current round ID, and the current
+revision. The player receives ordinary result comparison, not an automatic loss;
+dealer S17 and all scoring rules stay the same. Single-player has no turn timer.
+
 ## More than six cards
 
 The scoring and dealing engine imposes no six-card limit. The model's

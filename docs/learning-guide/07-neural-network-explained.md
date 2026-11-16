@@ -25,17 +25,20 @@ study every transitive package.
 
 ## Install and run
 
-Create the virtual environment once. For an existing environment, activate it and
-reuse its packages. From the repository root:
+Create the virtual environment once using the README setup instructions. With
+the existing environment and dependencies, `npm run dev` from the repository root
+starts FastAPI, Express, and React together; it uses `ai-service/.venv` directly.
+Press Ctrl+C to stop all three. To run only FastAPI manually:
 
 ```sh
 source ai-service/.venv/bin/activate
-python -m pip install -r ai-service/requirements.txt
 python -m uvicorn blackjack_ai_api:app --app-dir ai-service --host 127.0.0.1 --port 8000
 ```
 
-`requirements.txt` includes the tested lockfile, giving one installation workflow
-for serving, training, and tests. No training starts when Uvicorn starts.
+When installing packages for a new environment, use
+`python -m pip install -r ai-service/requirements.txt`. It includes the tested
+lockfile for serving, training, and tests. Routine startup does not reinstall
+packages or start training.
 
 ## Four inputs and normalization
 

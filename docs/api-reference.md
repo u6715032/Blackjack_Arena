@@ -15,7 +15,7 @@ token, hidden card, shoe order, or database credentials are response fields.
 | GET `/api/auth/me` | Session cookie | `{user}` |
 | GET `/api/profile` | Session cookie | `{user,statistics}` |
 | GET `/api/statistics` | Session cookie | `{statistics}` |
-| GET `/api/history?page=1` | Session cookie | `{history,page,pageSize:20}` |
+| GET `/api/history` | Session cookie; optional `page=1` | `{history,pageSize:20}` |
 | GET `/api/games/single` | Session cookie | `{game}` or `{game:null}` |
 | POST `/api/games/single` | `{botCount:0|1|2}` | `{game}` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
@@ -23,6 +23,15 @@ token, hidden card, shoe order, or database credentials are response fields.
 | POST `/api/games/single/retry` | Session cookie | Retry paused bot or unsaved result |
 
 All routes except health, login, and registration require a valid cookie.
+
+History returns at most the authenticated user's 20 retained rounds, ordered by
+`playedAt` descending and then `_id` descending. `page=1` remains accepted; other
+page values return HTTP 400. There is no `page` response field or next page.
+For an account with no history, the response is `{"history":[],"pageSize":20}`.
+Lifetime statistics are independent of retained history; pruning does not reduce
+counts or win percentage. Duplicate-save receipts are internal database records,
+not history API entries.
+
 Errors use `{error: "Understandable message"}`. Typical statuses: 400 invalid
 input, 401 missing/invalid session, 403 forbidden origin/host, 404 missing resource,
 409 stale action/conflict, 413 body too large, 429 request limit, 503 unavailable
@@ -38,12 +47,17 @@ Input example for an action, using IDs/revisions from the current snapshot:
 
 The backend ignores client-invented hand features. Advice is allowed only for the
 active requesting human. Advice responses include their matching round ID and
-revision and do not change the game.
+revision; the prediction itself never plays a human move. In multiplayer an
+already-expired deadline is enforced before advice: the server stands the player
+and rejects the request. The deadline remains active while inference is awaited.
 
 Public users contain id, username, email, createdAt. Public game snapshots contain
 id, mode, revision, status, currentPlayerId, players, dealer, saved, saveError,
-aiError. Every participant's hand is face-up. Dealer total is null and its second
-card is a placeholder until completion. Result strings are `win`, `loss`, `push`.
+aiError. Multiplayer snapshots also contain `turnDeadline`: a Unix timestamp in
+milliseconds for the active human's deadline, or `null` after completion. The
+field is omitted for single-player games. Every participant's hand is face-up.
+Dealer total is null and its second card is a placeholder until completion.
+Result strings are `win`, `loss`, `push`.
 
 ## Socket.IO
 
@@ -66,7 +80,24 @@ socket, and room mutations use the same authoritative engine as single player.
 Every ack is `{ok:true,data:...}` or `{ok:false,error:"..."}`. The server emits
 `room:update` with the current permitted room after changes; an explicit leave
 also clears that user's other tabs with `room:update: null`. A room contains
-code, hostId, players (id/username/isBot/connected), and game or null.
+code, hostId, players (id/username/isBot/connected), game or null, and `serverTime`
+(Unix milliseconds at snapshot creation). A lobby has `game: null` and no countdown.
+
+For example, these timing fields describe 30 seconds remaining; other room/game
+fields are omitted from this illustration:
+
+```json
+{"serverTime":1794800000000,"game":{"turnDeadline":1794800030000}}
+```
+
+The server owns the 30-second deadline for the whole human turn. HIT preserves it;
+changing the active player starts a fresh deadline. Clients use `serverTime` to
+estimate their clock offset and display the remaining time from `game.turnDeadline`.
+There is no per-second socket event or client command to trigger expiry. On
+timeout the server applies normal STAND with current engine revision validation,
+broadcasts the updated room, and saves results if the round completes. Lobby and
+completed-round waiting periods have no turn timer. Re-fetching a room does not
+reset the deadline; losing the last socket still stands the hand immediately.
 
 The host can start with 2–4 connected humans. Bots are only single-player
 tablemates. For disconnect and restart policies, see learning-guide chapter 06.

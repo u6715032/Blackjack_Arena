@@ -6,15 +6,18 @@ The current proposal DOCX was preserved; it was not silently rewritten.
 
 ## Suggested live demonstration
 
-1. Start FastAPI, Express, and React before presenting. Check their health endpoints.
+1. Run `npm run dev` at the repository root to start FastAPI, Express, and React.
+   Check AI `/health` and backend `/api/health`; use Ctrl+C to stop all three.
 2. Register a disposable account and explain the HTTP-only login cookie.
 3. Play single-player with two bots. Request advice before acting; show that the
    assistant does not move cards until the person clicks a gameplay button.
 4. Stand or hit, then identify bots acting through the model and the dealer using
    fixed S17 rules. Explain a natural Blackjack or scoring example from unit tests.
-5. Open the profile and show actual history and statistics saved in Atlas.
+5. Open the profile and explain the latest-20 history table versus lifetime
+   statistics. Older rows can be removed without reducing those statistics.
 6. Use another browser profile for a second account. Create/join a private room,
    start, and demonstrate synchronized turns and rejected out-of-turn actions.
+   Let a turn reach 30 seconds to show normal automatic STAND and the next timer.
 7. Disconnect one participant, explain the automatic stand, and show host transfer.
 8. Show tests and measured model results. If a service is unavailable, show its
    real error; do not substitute a prerecorded result and call it live.
@@ -149,6 +152,9 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     There is one authoritative room/game object. The server validates events,
     changes that object, and broadcasts a permitted snapshot with its revision.
     Clients replace their display state; they do not run competing game engines.
+    Each active human has a server-owned 30-second deadline; HIT does not reset
+    it. Clients display it using `turnDeadline` and `serverTime`. The server
+    applies normal STAND on expiry and starts the next eligible player's timer.
 
 27. **How do you stop duplicate or out-of-turn actions?**
     We authenticate the user, check room membership/current player, require
@@ -166,9 +172,9 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     hand appears only after resolution.
 
 30. **Why MongoDB and Mongoose?**
-    Our data is naturally account, history, and statistics documents. Mongoose
-    schemas define expected types and indexes, with ObjectId references linking
-    history/statistics to users. This is a straightforward fit for our scope.
+    Our data is naturally account, history, statistics, and save-receipt documents.
+    Mongoose schemas define expected types and indexes, with ObjectId references
+    linking history/statistics/receipts to users. This fits our project scope.
 
 31. **What protects passwords and sessions?**
     Passwords use bcrypt hashes, not reversible encryption. JWT cookies are
@@ -181,9 +187,12 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     authentication before retrieving records.
 
 33. **How do you prevent saving a round twice?**
-    A unique `{user,roundId}` index is durable protection. Inside one transaction,
-    already-existing history is skipped, and new history plus statistics commit
-    together. A failed transaction rolls back rather than half-updating counters.
+    `RoundReceipt` keeps a unique `{user,roundId}` key after older history is
+    deleted. Within one transaction, the service coordinates per-user writes,
+    checks receipts or legacy history, and counts only previously unsaved rounds.
+    History, receipts, lifetime statistics, and pruning to 20 rows commit together.
+    Retrying a pruned round does not recreate it or count it twice. A failed
+    transaction rolls back rather than half-updating counters.
 
 34. **What if Atlas fails during a round?**
     The completed result is shown as unsaved and can be retried. A new round is
@@ -191,16 +200,17 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
     on Node restart, so we explicitly document that limit.
 
 35. **What tests ran, and which parts used real services?**
-    Thirty JavaScript tests cover the engine, isolated account logic, service
-    failures, and actual local Socket.IO clients. Forty Python tests cover real
-    model files, API behavior, and temporary training/export. Two opt-in integration
-    tests use real FastAPI and Atlas
-    where applicable. Two Chrome flows use the running application and real
-    database. The verification report distinguishes these layers.
+    At the historical 24 October 2026 checkpoint, the report recorded 30 JavaScript
+    cases, 40 Python cases, two database/model integration cases, and two Chrome
+    flows. Those are historical counts, not current suite totals. Current test
+    files also cover turn timers, history retention, and homepage/profile behavior;
+    some use isolated storage, fake clocks, or mocked responses, while others use
+    real sockets, MongoDB, FastAPI, and Chrome. Consult the verification report
+    and actual command output before claiming a new execution result.
 
 36. **What remains outside the delivered scope?**
     Public deployment, multi-server state coordination, durable active rounds,
-    turn timers, password reset, and email verification. Required gameplay and
+    password reset, and email verification. Required gameplay and
     account flows were verified locally; those additional features are not claimed.
 
 ## How to present ownership and limitations honestly

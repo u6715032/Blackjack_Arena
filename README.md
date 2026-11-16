@@ -46,6 +46,10 @@ Open **http://localhost:5173**. Use the hostname configured in `CLIENT_ORIGIN`;
 Create an account, select tablemates, and deal a hand. For multiplayer, use two
 different browser profiles or a normal window plus a private window so each person
 has a separate login cookie. Leaving the multiplayer page disconnects its socket.
+The homepage's Single Player and Multiplayer cards choose the mode. The hero
+keeps its title, description, card artwork, and footnote; duplicate hero buttons
+and the learning strip have been removed. Homepage-specific spacing targets
+1366×768 and 1920×1080 desktop viewports while allowing scrolling on mobile.
 
 If a port is already occupied, stop the old process before starting another copy.
 Vite selects the backend port from the private configuration on the Node side;
@@ -91,7 +95,9 @@ Create an Atlas database user and allow your development machine's network addre
 in Atlas Network Access. URL-encode special characters in a URI password. Use
 Atlas, or a local MongoDB replica set: saving rounds uses multi-document
 transactions and does not work with a standalone MongoDB server. The backend
-checks the connection and creates required indexes before accepting requests.
+checks the connection, creates required indexes, and trims existing users' history
+to the latest 20 rounds before accepting requests. Cleanup uses resumable batches
+and preserves lifetime statistics and duplicate-save receipts.
 It stops with a sanitized message if the database cannot be reached.
 
 An optional `frontend/.env` can set `BACKEND_PROXY_TARGET` from its example. Do not
@@ -103,22 +109,27 @@ Python `.env` file. It must point to a compatible checkpoint; the default is
 ## Tests and build
 
 ```sh
-# Engine, accounts with isolated test storage, service failures, real Socket.IO
+# Engine, isolated accounts, service failures, multiplayer timers, real Socket.IO
 npm test
 
 # Actual checkpoint loading, preprocessing, input validation, TF/PT parity
 npm run test:ai
 
-# Start FastAPI first. Uses the real configured Atlas database; temporary test
-# accounts and their records are removed in finally blocks.
+# Start FastAPI first. Uses configured MongoDB and actual model inference;
+# includes history retention, rollback, concurrency, and duplicate-save checks.
 npm run test:database
 
-# Start all three services first. Tests real Chrome/Chromium + Atlas + FastAPI.
+# Start all three services with npm run dev before browser tests.
+# Uses Chrome/Chromium; includes live gameplay and mocked profile responses.
 npm run test:browser
 
 # Production frontend bundle: frontend/dist
 npm run build
 ```
+
+Use a disposable dedicated MongoDB database for integration/browser checks.
+Test-account cleanup targets only created IDs, but normal backend/database startup
+also applies the history retention policy to existing users in that database.
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional
@@ -129,7 +140,7 @@ port. `npm run format` formats JavaScript, JSX, and CSS for readability.
 
 See [the verification report](docs/verification-report.md) for executed commands,
 measured results, fixes, and limits. Tests with isolated storage explicitly say so;
-the production server never substitutes an in-memory database for Atlas.
+the production server never substitutes an in-memory database for MongoDB.
 
 ## Neural network
 
@@ -183,7 +194,7 @@ backend/src/
   config.js             Private server configuration
   game/engine.js        Card rules and round state transitions
   middleware/auth.js    JWT signing and verification
-  models/index.js       Three Mongoose collections
+  models/index.js       User, GameHistory, PlayerStatistics, RoundReceipt models
   routes/index.js       REST handlers (controller role)
   services/             Database, games/rooms, internal AI requests
   sockets.js            Authenticated real-time event handlers
@@ -207,16 +218,24 @@ there is no extra controller directory duplicating them.
 
 This is a local, single-server project; it has not been publicly deployed. Active
 single-player games, private rooms, and their locks live in process memory and
-reset on restart. Completed saved records persist in Atlas. A failed result save
-is visible and retryable while that process is running; a restart can lose it.
+reset on restart. MongoDB retains each user's latest 20 completed round records
+across single-player and multiplayer, ordered by `playedAt` descending and then
+`_id` descending. Profile history has no pagination. Lifetime game counts,
+wins/losses/pushes, and win percentage cover all saved rounds, including pruned
+history. Minimal `RoundReceipt` keys remain so an old save retry cannot count twice.
+A failed result save is visible and retryable while that process is running;
+a restart can lose it.
 Do not restart while demonstrating an unfinished round.
 
 Disconnecting a user's last socket stands their unfinished multiplayer hand,
 including a future turn. Reconnecting cannot undo the stand. The host role moves
 to a connected player. Disconnected seats are removed before the next round.
-An empty, fully saved room is deleted. A connected player can wait indefinitely;
-there is no turn timer. One stored single-player game per account has no idle
-expiry; monitor memory for long-running deployments.
+An empty, fully saved room is deleted. Each active multiplayer human has 30 seconds
+for their entire turn; HIT does not restart it. The backend automatically applies
+a normal STAND on expiry and gives the next eligible player a fresh deadline.
+The countdown is derived from server state. No timer runs in the lobby, after
+round completion, or in single-player. One stored single-player game per account
+has no idle expiry; monitor memory for long-running deployments.
 
 JWT cookies expire after eight hours. Logout revokes all that user's sessions
 and disconnects their sockets. There is no email verification, password reset,

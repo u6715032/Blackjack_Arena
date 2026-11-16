@@ -1,8 +1,41 @@
 # AI cleanup and application verification report
 
-Verified on **24 October 2026** (Asia/Bangkok). This was a refactor of the existing
-application, with no intended website, game-rule, authentication, or API-response
-change. No public deployment or remote Git push was performed.
+Historical verification on **24 October 2026** (Asia/Bangkok). This was a refactor
+of the existing application, with no intended website, game-rule, authentication,
+or API-response change. No public deployment or remote Git push was performed
+during that verification.
+The measured results below remain a record of that checkpoint. Current startup
+commands and operating limits are maintained separately from those historical results.
+
+## Later implementation notes — source review, 16 November 2026
+
+These notes describe the current code, not a new execution of the test suites:
+
+- Multiplayer has a server-owned 30-second human-turn deadline. HIT keeps it;
+  expiry performs normal STAND under the room lock. Public snapshots expose
+  `game.turnDeadline` and `room.serverTime`. Lobby/completed rounds and
+  single-player have no countdown. Last-socket disconnect still stands immediately.
+- MongoDB retains each user's newest 20 history rows across both modes, ordered
+  by `playedAt` then `_id`, both descending. Lifetime statistics remain cumulative.
+  `RoundReceipt` is a fourth model whose minimal keys outlive history pruning.
+  Saving and startup cleanup coordinate per-user writes and preserve retry safety.
+- The homepage no longer has duplicate hero buttons or the learning strip.
+  Homepage-specific desktop spacing preserves the existing artwork, navigation,
+  mode cards, footer, and mobile scrolling.
+- Root `npm run dev` delegates to unchanged `dev:all`, starting FastAPI from the
+  existing virtual environment alongside Express and Vite. Workspace commands
+  remain independently usable and do not recurse into the root command.
+
+Current regression coverage is present in `backend/tests/turn-timer.test.js`,
+`backend/tests/integration/history.integration.js`, and
+`tests/browser/improvements.spec.js`. These include fake-clock timer tests,
+real MongoDB retention/rollback checks, and browser layout/countdown cases;
+profile browser cases use mocked responses. The live refresh case keeps another
+socket open to preserve the established last-connection disconnect policy.
+Database/browser checks can use a disposable local MongoDB replica set rather
+than Atlas. Database initialization also prunes existing history in the configured
+database, so test-account teardown alone is not complete database isolation.
+No new application test results are claimed by this documentation-only review.
 
 ## Final AI structure and responsibilities
 
@@ -133,7 +166,7 @@ no 20-card tuple. Direct API and whole-domain parity tests cover that terminal
 count. No model optimality, calibration, human learning benefit, or new win-rate
 result is claimed.
 
-## Executed checks after cleanup
+## Historical executed checks after cleanup — 24 October 2026
 
 | Command/check | Result | Evidence |
 | --- | --- | --- |
@@ -148,8 +181,8 @@ result is claimed.
 | Live `POST /predict` for soft 18, upcard 10, seven cards | **HTTP 200** | Actual HIT prediction with real model scores, reference comparison, explanation, and score warning |
 | Pre/post complete-domain prediction comparison | **Passed** | Same 2,190 states/labels/actions, maximum score difference 0.0 |
 
-There are **74 passing cases across the four automated suites**. This is a test
-count, not a code-coverage percentage. The one-epoch training/export test writes
+At that checkpoint there were **74 passing cases across the four automated suites**.
+This is a test count, not a code-coverage percentage. The one-epoch training/export test writes
 only to pytest's temporary directory; its experiment metrics do not replace the
 600-epoch serving model's report. It proves the refactored training pipeline can
 run and export compatible real weights without relying on removed modules.
@@ -170,7 +203,7 @@ previous completed round before a new deal finished. The test now waits for that
 deal's actual HTTP response and matching actionable/finished UI state. Both flows
 passed on rerun. This fixes test synchronization without changing website code.
 
-## Test isolation and unchanged website behavior
+## Historical test isolation and behavior — 24 October 2026
 
 Default JavaScript account/service tests use explicitly labeled isolated storage
 and, where appropriate, prediction fixtures to test turn control. Production
@@ -202,22 +235,19 @@ source ai-service/.venv/bin/activate
 python -m pip install -r ai-service/requirements.txt
 ```
 
-An existing checkout only needs activation, not a new virtual environment or
-reinstallation before every run. Keep the existing private backend configuration.
+An existing checkout reuses its virtual environment without recreating it or
+reinstalling packages before every run. Keep the existing private backend configuration.
 The complete setup instructions are in the [README](../README.md).
 
-Start Python in one terminal:
-
-```sh
-source ai-service/.venv/bin/activate
-python -m uvicorn blackjack_ai_api:app --app-dir ai-service --host 127.0.0.1 --port 8000
-```
-
-Start Express and React together from the repository root in another terminal:
+Start all three services from the repository root in one terminal:
 
 ```sh
 npm run dev
 ```
+
+This delegates to `dev:all` and uses `ai-service/.venv/bin/python` directly for
+FastAPI on `127.0.0.1:8000`. Logs are labeled `ai`, `server`, and `web`.
+Press Ctrl+C to stop all three. Individual service commands remain in the README.
 
 Open `http://localhost:5173` using the hostname allowed in `CLIENT_ORIGIN`.
 For multiplayer, use separate browser sessions for separate accounts.
@@ -226,13 +256,14 @@ For multiplayer, use separate browser sessions for separate accounts.
 npm test
 npm run test:ai
 npm run build
-# FastAPI must be running for database/model integration:
+# FastAPI must be running; use a disposable configured MongoDB database:
 npm run test:database
 # All three services must be running for browser tests:
 npm run test:browser
 ```
 
-To study training without replacing the serving model:
+To study training without replacing the serving model, activate the environment
+first with `source ai-service/.venv/bin/activate`, then run:
 
 ```sh
 python ai-service/train.py --epochs 600 --output /tmp/blackjack-model-experiment
@@ -246,10 +277,12 @@ weights. Tests and normal gameplay never modify these serving files.
 
 - This remains a single-server local application. Active games, rooms, locks, and
   failed-save results are in process memory and can be lost on restart; committed
-  completed history persists in Atlas. No multi-server coordination was added.
+  history retains only the newest 20 rows per user in MongoDB. Lifetime statistics
+  and save receipts persist separately. No multi-server room coordination was added.
 - Last-socket disconnect stands the unfinished human hand immediately. There is
-  no grace timer, turn timer, or idle-game expiry. Reconnecting does not reopen a
-  stood hand. These existing policies are unchanged.
+  no disconnect grace timer. Reconnecting does not reopen a stood hand or reset
+  an active deadline. Multiplayer turns have a 30-second timer; single-player
+  games still have no idle expiry.
 - No public deployment, production load test, comprehensive security audit,
   screen-reader study, or broad browser/device matrix was performed.
 - Four model/reference disagreements remain. Training labels do not capture the

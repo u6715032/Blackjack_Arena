@@ -36,7 +36,7 @@ sequenceDiagram
         Express->>Engine: Process legal model move
     end
     Express->>Engine: Dealer S17, results after all turns
-    Express->>Atlas: Transaction: histories and statistics
+    Express->>Atlas: Transaction: receipts, history, lifetime statistics, pruning
     Atlas-->>Express: Commit
     Express-->>React: Completed snapshot + saved status
 ```
@@ -49,7 +49,7 @@ sequenceDiagram
 4. `game/engine.js` `processHit`: draw and score one new card.
 5. `services/ai.js`: inspect the four-feature request, never private configuration.
 6. `blackjack_ai_api.py` `/predict`: normalized tensor and real forward pass.
-7. `services/database.js` `saveRound`: transaction and duplicate check.
+7. `services/database.js` `saveRound`: receipt check, lifetime counters, and history pruning in one transaction.
 8. `components/GameTable.jsx`: display the returned snapshot.
 
 Use a disposable account when stepping through saves. Avoid printing raw
@@ -63,12 +63,22 @@ The host emits `room:create`, friends emit `room:join`, and the host emits
 The server broadcasts an allowlisted `room:update` after each change; all clients
 show the same cards, revision, and active player.
 
+The server also publishes `game.turnDeadline` and `room.serverTime`. Each human
+has 30 seconds for the whole turn; HIT does not restart it. A server timeout
+applies normal STAND under the room lock, broadcasts the result, and gives the
+next eligible player a fresh deadline. There is no timer between rounds or in
+single-player. The browser only displays the synchronized countdown.
+
 Multiplayer advice is a private acknowledgement to `game:advice`. It does not
-broadcast an automatic action or stall other players indefinitely: the request
-has a short AI timeout, while the room lock prevents inconsistent updates.
+broadcast a model-selected action: the request has a short AI timeout, while the
+room lock prevents inconsistent updates. The independent turn deadline still
+applies during advice; expiry retries if that operation holds the lock.
 When the last human finishes, the server resolves the single shared dealer and
 saves every human's outcome in one transaction. Each player compares their own
 hand with that dealer; humans do not compete directly against each other.
+Saving retains at most 20 history rows per user across both game modes. Lifetime
+statistics and durable save receipts survive pruning; profile history reads those
+20 rows without pagination.
 
 ## Failure paths to demonstrate
 
@@ -81,6 +91,7 @@ hand with that dealer; humans do not compete directly against each other.
 | Atlas unavailable at startup | Backend does not listen | Fix connectivity and restart |
 | Atlas save fails mid-session | Unsaved result message | Retry saving in same process |
 | Last socket disconnects | Player stands | Rejoin for later rounds |
+| Multiplayer deadline expires | Normal automatic STAND; next turn or round result | Continue with the new active player or next deal |
 | Node restart | Active games/rooms lost | Start new room/round; saved history remains |
 
 ## Exercise

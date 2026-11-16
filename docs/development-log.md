@@ -4,6 +4,9 @@ The original repository had two Python scripts, original `.keras` / `.pt` artifa
 the proposal, and private backend configuration. Frontend/backend implementation
 directories were empty. Historical implementation checkpoints remain in Git.
 The current AI source tree maintains one final implementation and checkpoint pair.
+The milestones below record earlier development work and historical test results,
+not current suite totals. Later turn timers, history retention, homepage spacing,
+and unified startup are described in the current README and verification report.
 
 ## Milestone 1 — setup
 
@@ -14,7 +17,8 @@ in the final neural network learning chapter.
 Prepared JavaScript npm workspaces and Python requirements. Database connectivity
 and installed dependency versions are verified in the final verification report.
 
-Git checkpoints are local commits; no remote push is performed.
+Git checkpoints for these milestones were local commits; no remote push was
+performed as part of those recorded implementation steps.
 
 ## Milestone 2 — engine
 
@@ -79,9 +83,10 @@ Documentation distinguishes isolated tests from actual Atlas/model/browser work.
 
 ## Milestone 10 — verification
 
-Final checks and measured results are recorded in `verification-report.md`.
+Checks and measured results from that stage are recorded in `verification-report.md`.
 Artifact fingerprints and environment tracked/ignored status are checked without
-reading private values into output. No remote push or public deployment occurs.
+reading private values into output. No remote push or public deployment occurred
+as part of that stage.
 
 ## AI cleanup — 24 October 2026
 
