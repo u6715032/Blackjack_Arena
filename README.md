@@ -11,7 +11,18 @@ uses real TensorFlow. No paid AI API is used.
 ## Quick start on this Mac
 
 Dependencies and a Python virtual environment were installed during development.
-The existing `backend/.env` was preserved. Open three terminals at the repository:
+The existing `backend/.env` was preserved. From the repository root, run:
+
+```sh
+npm run dev
+```
+
+This delegates to `dev:all` and starts FastAPI on `127.0.0.1:8000`, Express, and
+React/Vite together, with separate `ai`, `server`, and `web` logs. It uses the
+existing `ai-service/.venv` directly; no manual activation is needed. Press
+**Ctrl+C** to stop all three services.
+
+To start services individually, use separate terminals at the repository root:
 
 ```sh
 # Terminal 1: trained model service
@@ -36,12 +47,6 @@ Create an account, select tablemates, and deal a hand. For multiplayer, use two
 different browser profiles or a normal window plus a private window so each person
 has a separate login cookie. Leaving the multiplayer page disconnects its socket.
 
-Alternatively, run Express and React together after starting Python:
-
-```sh
-npm run dev
-```
-
 If a port is already occupied, stop the old process before starting another copy.
 Vite selects the backend port from the private configuration on the Node side;
 no database or JWT secrets are included in frontend code.
@@ -60,7 +65,8 @@ python -m pip install -r ai-service/requirements.txt
 There is one Python installation command for serving, training, and tests.
 `requirements.txt` includes the exact versions in `requirements-lock.txt`; you
 do not need to study or install that second file separately. Reuse your existing
-virtual environment: create it once, then activate it in each new terminal.
+virtual environment: create it once. `npm run dev` uses it directly; activate it
+when running Python commands manually.
 On Windows activate with `ai-service\.venv\Scripts\activate`; run Python tests
 with `python -m pytest ai-service/tests -q` instead of the POSIX npm helper.
 
