@@ -213,6 +213,9 @@ export function publicGame(game) {
     revision: game.revision,
     status: game.status,
     currentPlayerId: game.players[game.currentPlayerIndex]?.id ?? null,
+    ...(game.mode === "multi"
+      ? { turnDeadline: game.turnDeadline ?? null }
+      : {}),
     players: game.players.map((player) => ({
       id: player.id,
       username: player.username,

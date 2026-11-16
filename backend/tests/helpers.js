@@ -2,7 +2,17 @@
 export function testRepository() {
   const users = new Map();
   const histories = new Map();
+  const receipts = new Set();
   const statistics = new Map();
+  function historyFor(id) {
+    return [...histories.values()]
+      .filter((round) => round.user === id)
+      .sort(
+        (first, second) =>
+          second.playedAt - first.playedAt || second._id - first._id,
+      )
+      .slice(0, 20);
+  }
   return {
     isReady: () => true,
     async createUser(values) {
@@ -44,20 +54,29 @@ export function testRepository() {
     async getStatistics(id) {
       return statistics.get(id);
     },
-    async getHistory(id, page) {
-      return [...histories.values()]
-        .filter((round) => round.user === id)
-        .slice((page - 1) * 20, page * 20);
+    async getHistory(id) {
+      return historyFor(id);
     },
     async saveRound(game) {
       for (const player of game.players.filter((player) => !player.isBot)) {
         const key = `${game.id}:${player.id}`;
-        if (histories.has(key)) continue;
+        if (receipts.has(key)) continue;
+        receipts.add(key);
         histories.set(key, {
+          _id: receipts.size,
           user: player.id,
           roundId: game.id,
+          mode: game.mode,
           result: player.result,
+          playedAt: game.completedAt,
         });
+        const retained = new Set(
+          historyFor(player.id).map((round) => round.roundId),
+        );
+        for (const [historyKey, round] of histories) {
+          if (round.user === player.id && !retained.has(round.roundId))
+            histories.delete(historyKey);
+        }
         const stats = statistics.get(player.id);
         if (!stats) continue;
         stats.totalGames += 1;

@@ -6,7 +6,12 @@ import mongoose from "mongoose";
 import request from "supertest";
 import { readConfig } from "../../src/config.js";
 import { connectDatabase, database } from "../../src/services/database.js";
-import { User, GameHistory, PlayerStatistics } from "../../src/models/index.js";
+import {
+  User,
+  GameHistory,
+  PlayerStatistics,
+  RoundReceipt,
+} from "../../src/models/index.js";
 import { createApplication } from "../../src/app.js";
 import { createRound, processStand } from "../../src/game/engine.js";
 import { testShoe } from "../helpers.js";
@@ -133,6 +138,7 @@ test("real Atlas: accounts, real AI bots/advice, durable history, statistics and
     // Remove ONLY the exact temporary users created by this test and their records.
     if (createdIds.length) {
       await GameHistory.deleteMany({ user: { $in: createdIds } });
+      await RoundReceipt.deleteMany({ user: { $in: createdIds } });
       await PlayerStatistics.deleteMany({ user: { $in: createdIds } });
       await User.deleteMany({ _id: { $in: createdIds } });
     }

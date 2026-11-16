@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { PlayingCard } from "../components/GameTable";
 export default function Home() {
   return (
-    <>
+    <div className="home-page">
       <section className="hero">
         <div className="hero-copy">
           <span className="eyebrow">
@@ -16,14 +16,6 @@ export default function Home() {
             Take a seat, bring your friends, and find your next move with a
             trained neural network.
           </p>
-          <div className="hero-actions">
-            <Link className="button" to="/single">
-              Take a seat <span>↗</span>
-            </Link>
-            <Link className="button secondary" to="/multiplayer">
-              Play with friends
-            </Link>
-          </div>
           <div className="hero-footnote">
             <span>♠</span> No bets. No money. Just the game.
           </div>
@@ -85,16 +77,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-      <section className="learning-strip">
-        <span className="assistant-icon">◈</span>
-        <div>
-          <h3>Built to play. Designed to understand.</h3>
-          <p>
-            One supervised neural network powers both computer players and your
-            strategy assistant. Every decision is yours to make.
-          </p>
-        </div>
-      </section>
-    </>
+    </div>
   );
 }

@@ -210,7 +210,35 @@ export function StrategyAssistant({ game, userId, onAdvice, onAction, busy }) {
     </aside>
   );
 }
-export function BlackjackTable({ game, userId, busy, onAction, onAdvice }) {
+function TurnCountdown({ deadline, serverTimeOffset }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, [deadline, serverTimeOffset]);
+  const seconds = Math.max(
+    0,
+    Math.ceil((deadline - now - serverTimeOffset) / 1000),
+  );
+  return (
+    <span
+      className="turn-countdown"
+      role="timer"
+      aria-label="Time remaining in turn"
+    >
+      {seconds}s remaining
+    </span>
+  );
+}
+export function BlackjackTable({
+  game,
+  userId,
+  busy,
+  onAction,
+  onAdvice,
+  serverTimeOffset = 0,
+}) {
   const currentPlayer = game.players.find(
     (player) => player.id === game.currentPlayerId,
   );
@@ -259,6 +287,14 @@ export function BlackjackTable({ game, userId, busy, onAction, onAdvice }) {
                     ? "Your move"
                     : `${currentPlayer?.username || "Dealer"}’s turn`}
             </span>
+            {game.mode === "multi" &&
+              game.status === "playing" &&
+              game.turnDeadline != null && (
+                <TurnCountdown
+                  deadline={game.turnDeadline}
+                  serverTimeOffset={serverTimeOffset}
+                />
+              )}
           </div>
           <ActionButtons enabled={yourTurn} busy={busy} onAction={onAction} />
         </div>

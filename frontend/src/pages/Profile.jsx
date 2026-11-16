@@ -3,14 +3,13 @@ import { api } from "../api";
 export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
-  const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let current = true;
     setLoading(true);
     setError("");
-    Promise.all([api("/profile"), api(`/history?page=${page}`)])
+    Promise.all([api("/profile"), api("/history")])
       .then(([profile, history]) => {
         if (current) {
           setProfile(profile);
@@ -26,7 +25,7 @@ export default function Profile() {
     return () => {
       current = false;
     };
-  }, [page]);
+  }, []);
   const statistics = profile?.statistics;
   return (
     <>
@@ -69,7 +68,7 @@ export default function Profile() {
             <span className="eyebrow">ONE HAND AT A TIME</span>
             <h2>Round history</h2>
           </div>
-          <small>Page {page} · 20 rounds per page</small>
+          <small>Latest 20 rounds</small>
         </div>
         <div className="table-scroll">
           <table>
@@ -103,25 +102,9 @@ export default function Profile() {
         </div>
         {!loading && !history.length && (
           <p className="empty-history">
-            No rounds on this page. Your completed hands will appear here.
+            No rounds yet. Your completed hands will appear here.
           </p>
         )}
-        <div className="pagination">
-          <button
-            className="secondary small"
-            disabled={page === 1 || loading}
-            onClick={() => setPage(page - 1)}
-          >
-            ← Previous
-          </button>
-          <button
-            className="secondary small"
-            disabled={history.length < 20 || loading}
-            onClick={() => setPage(page + 1)}
-          >
-            Next →
-          </button>
-        </div>
       </section>
       <p className="fine-print">
         Win percentage = wins ÷ all completed rounds × 100. Pushes count as

@@ -219,11 +219,6 @@ main {
   max-width: 410px;
   font-size: 1rem;
 }
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  margin: 34px 0 28px;
-}
 .hero-footnote {
   font-size: 0.72rem;
   color: #8b9b8e;
@@ -357,25 +352,6 @@ main {
   margin-top: 28px;
   color: var(--gold);
   font-size: 0.82rem;
-}
-.learning-strip {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-  padding: 28px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: linear-gradient(100deg, #1c3023, #172019);
-}
-.learning-strip h3 {
-  font-size: 1rem;
-  letter-spacing: 0;
-  margin-bottom: 6px;
-}
-.learning-strip p {
-  font-size: 0.78rem;
-  max-width: 650px;
-  margin-bottom: 0;
 }
 .assistant-icon {
   font-size: 2.3rem;
@@ -1015,11 +991,6 @@ td {
   border-bottom: 1px solid #2a382c;
   color: #d2d8ca;
 }
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 25px;
-}
 .empty-history {
   text-align: center;
   padding: 40px 10px;
@@ -1037,10 +1008,6 @@ td {
   }
   .hero-art {
     height: 390px;
-  }
-  .hero-actions {
-    gap: 10px;
-    flex-wrap: wrap;
   }
   .game-layout {
     grid-template-columns: minmax(0, 1fr) 250px;
@@ -1206,16 +1173,6 @@ td {
   .lobby {
     padding: 25px;
   }
-  .learning-strip {
-    padding: 22px;
-    gap: 16px;
-  }
-  .learning-strip h3 {
-    font-size: 0.9rem;
-  }
-  .learning-strip p {
-    font-size: 0.72rem;
-  }
   footer {
     flex-wrap: wrap;
     justify-content: center;
@@ -1252,11 +1209,6 @@ td {
 @media (max-width: 450px) {
   .hero h1 {
     font-size: 2.9rem;
-  }
-  .hero-actions .button {
-    font-size: 0.78rem;
-    padding: 13px 17px;
-    gap: 16px;
   }
   .mode-grid {
     grid-template-columns: 1fr;
@@ -1350,7 +1302,74 @@ td {
   .site-header nav a {
     font-size: 0.68rem;
   }
-  .learning-strip > .assistant-icon {
-    display: none;
+}
+
+/* Keep desktop spacing local to the homepage; smaller screens keep natural flow. */
+@media (min-width: 1051px) {
+  .home-page {
+    --home-spacing: clamp(0px, calc(6.5vh - 52px), 18px);
   }
+  #root:has(.home-page) {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  main:has(> .home-page) {
+    min-height: 0;
+    flex: 1;
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 0;
+  }
+  .home-page .hero {
+    min-height: 0;
+  }
+  .home-page .hero-copy {
+    padding: 16px 0;
+  }
+  .home-page .hero h1 {
+    margin: 8px 0;
+  }
+  .home-page .hero-copy > .eyebrow {
+    margin-bottom: 8px;
+  }
+  .home-page .hero p {
+    margin-bottom: 12px;
+  }
+  .home-page .hero-art {
+    height: clamp(300px, 42vh, 450px);
+  }
+  .home-page .mode-section {
+    padding: calc(8px + var(--home-spacing)) 0;
+  }
+  .home-page .section-heading {
+    margin-bottom: calc(12px + var(--home-spacing));
+  }
+  .home-page .mode-section .eyebrow {
+    margin-bottom: 6px;
+  }
+  .home-page .mode-card {
+    padding: calc(12px + var(--home-spacing)) 24px;
+  }
+  .home-page .mode-card h3 {
+    margin-bottom: calc(8px + var(--home-spacing));
+  }
+  .home-page .mode-card p {
+    margin-bottom: var(--home-spacing);
+  }
+  .home-page .mode-link {
+    padding-top: calc(8px + var(--home-spacing));
+    margin-top: calc(10px + var(--home-spacing));
+  }
+  body:has(.home-page) footer {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+}
+.turn-countdown {
+  display: inline-block;
+  margin-left: 12px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

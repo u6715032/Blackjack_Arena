@@ -24,6 +24,83 @@ export function createGameService({ repository, predict, shoeFactory }) {
   const connectionStatus = new Map();
   let notify = () => {};
 
+  function clearTurnTimer(room) {
+    if (room.turn) clearTimeout(room.turn.timer);
+    room.turn = null;
+    if (room.game) room.game.turnDeadline = null;
+  }
+  function isCurrentTurn(room, turn) {
+    return (
+      rooms.get(room.code) === room &&
+      room.turn === turn &&
+      room.game?.id === turn.roundId &&
+      room.game.status === "playing" &&
+      room.game.players[room.game.currentPlayerIndex]?.id === turn.playerId
+    );
+  }
+  function scheduleTurnTimeout(room, turn, delay) {
+    if (!isCurrentTurn(room, turn)) return;
+    turn.timer = setTimeout(() => {
+      expireTurn(room, turn).catch(() => {
+        // Keep expiry retryable even if another server operation fails.
+        scheduleTurnTimeout(room, turn, 100);
+      });
+    }, delay);
+    turn.timer.unref();
+  }
+  function syncTurnTimer(room) {
+    const game = room.game;
+    const player = game?.players[game.currentPlayerIndex];
+    if (game?.status !== "playing" || !player || player.isBot) {
+      clearTurnTimer(room);
+      return;
+    }
+    if (room.turn?.roundId === game.id && room.turn.playerId === player.id)
+      return;
+    clearTurnTimer(room);
+    const turn = {
+      roundId: game.id,
+      playerId: player.id,
+      deadline: Date.now() + 30000,
+    };
+    room.turn = turn;
+    game.turnDeadline = turn.deadline;
+    scheduleTurnTimeout(room, turn, 30000);
+  }
+  async function finishRoomUpdate(room) {
+    // Update the deadline before awaiting persistence, including on completion.
+    syncTurnTimer(room);
+    await saveFinishedRound(room.game);
+    broadcast(room);
+  }
+  async function standExpiredTurn(room) {
+    const turn = room.turn;
+    if (!turn || !isCurrentTurn(room, turn) || Date.now() < turn.deadline)
+      return false;
+    applyAction(
+      room.game,
+      turn.playerId,
+      "STAND",
+      turn.roundId,
+      room.game.revision,
+    );
+    await finishRoomUpdate(room);
+    return true;
+  }
+  async function expireTurn(room, turn) {
+    if (!isCurrentTurn(room, turn)) return;
+    // Advice or saving may hold the existing room lock. Retry without dropping expiry.
+    if (busy.has(room.code)) {
+      scheduleTurnTimeout(room, turn, 100);
+      return;
+    }
+    if (Date.now() < turn.deadline) {
+      scheduleTurnTimeout(room, turn, turn.deadline - Date.now());
+      return;
+    }
+    await withLock(room.code, () => standExpiredTurn(room));
+  }
+
   async function withLock(key, operation) {
     if (busy.has(key))
       fail("An action is already being processed. Try again.", 409);
@@ -85,6 +162,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
       hostId: room.hostId,
       players: room.players.map((player) => ({ ...player })),
       game: publicGame(room.game),
+      serverTime: Date.now(),
     };
   }
   function broadcast(room) {
@@ -222,8 +300,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
           userRooms.delete(player.id);
         room.players = connected;
         room.game = createRound(connected, "multi", shoeFactory?.());
-        await saveFinishedRound(room.game);
-        broadcast(room);
+        await finishRoomUpdate(room);
         return roomView(room);
       });
     },
@@ -232,6 +309,9 @@ export function createGameService({ repository, predict, shoeFactory }) {
       return withLock(room.code, async () => {
         validateAction(data);
         if (!room.game) fail("The round has not started.");
+        // The deadline wins even when a queued browser action arrives before the callback.
+        if (await standExpiredTurn(room))
+          fail("The turn expired. Refresh the table and try again.", 409);
         try {
           applyAction(
             room.game,
@@ -243,15 +323,16 @@ export function createGameService({ repository, predict, shoeFactory }) {
         } catch (error) {
           fail(error.message, 409);
         }
-        await saveFinishedRound(room.game);
-        broadcast(room);
+        await finishRoomUpdate(room);
         return roomView(room);
       });
     },
     roomAdvice(userId, data) {
       const room = requireRoom(userId);
-      return withLock(room.code, () => {
+      return withLock(room.code, async () => {
         if (!room.game) fail("The round has not started.");
+        if (await standExpiredTurn(room))
+          fail("The turn expired. Request fresh advice.", 409);
         return advice(room.game, userId, data);
       });
     },
@@ -267,6 +348,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
       const room = requireRoom(userId);
       return withLock(room.code, async () => {
         standDisconnectedPlayer(room.game, userId);
+        syncTurnTimer(room);
         await (room.game ? saveFinishedRound(room.game) : Promise.resolve());
         if (room.game?.status === "complete" && !room.game.saved) {
           broadcast(room);
@@ -274,8 +356,10 @@ export function createGameService({ repository, predict, shoeFactory }) {
         }
         room.players = room.players.filter((player) => player.id !== userId);
         userRooms.delete(userId);
-        if (!room.players.length) rooms.delete(room.code);
-        else {
+        if (!room.players.length) {
+          clearTurnTimer(room);
+          rooms.delete(room.code);
+        } else {
           if (room.hostId === userId)
             room.hostId =
               room.players.find((player) => player.connected)?.id ??
@@ -306,6 +390,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
         if (!player) return;
         player.connected = connected;
         if (!connected) standDisconnectedPlayer(room.game, userId);
+        syncTurnTimer(room);
         if (room.hostId === userId && !connected)
           room.hostId =
             room.players.find((player) => player.connected)?.id ?? userId;
@@ -318,6 +403,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
             userRooms.delete(player.id);
             connectionStatus.delete(player.id);
           }
+          clearTurnTimer(room);
           rooms.delete(room.code);
         } else broadcast(room);
       });

@@ -6,6 +6,7 @@ import {
   User,
   GameHistory,
   PlayerStatistics,
+  RoundReceipt,
 } from "../../backend/src/models/index.js";
 
 const createdIds = [];
@@ -15,6 +16,7 @@ test.afterAll(async () => {
     serverSelectionTimeoutMS: 8000,
   });
   await GameHistory.deleteMany({ user: { $in: createdIds } });
+  await RoundReceipt.deleteMany({ user: { $in: createdIds } });
   await PlayerStatistics.deleteMany({ user: { $in: createdIds } });
   await User.deleteMany({ _id: { $in: createdIds } });
   await mongoose.disconnect();

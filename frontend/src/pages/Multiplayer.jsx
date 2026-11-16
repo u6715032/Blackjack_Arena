@@ -12,6 +12,14 @@ export default function Multiplayer() {
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  function receiveRoom(nextRoom) {
+    setRoom(
+      nextRoom && {
+        ...nextRoom,
+        serverTimeOffset: nextRoom.serverTime - Date.now(),
+      },
+    );
+  }
   function send(event, data = {}) {
     return new Promise((resolve, reject) => {
       const socket = socketRef.current;
@@ -36,12 +44,12 @@ export default function Multiplayer() {
       setConnected(true);
       setError("");
       send("room:get")
-        .then(setRoom)
+        .then(receiveRoom)
         .catch((error) => setError(error.message));
     });
     socket.on("disconnect", () => setConnected(false));
     socket.on("connect_error", (error) => setError(error.message));
-    socket.on("room:update", setRoom);
+    socket.on("room:update", receiveRoom);
     socket.connect();
     return () => {
       socket.disconnect();
@@ -52,11 +60,11 @@ export default function Multiplayer() {
     setBusy(true);
     setError("");
     try {
-      setRoom(await send(event, data));
+      receiveRoom(await send(event, data));
     } catch (error) {
       setError(error.message);
       await send("room:get")
-        .then(setRoom)
+        .then(receiveRoom)
         .catch(() => {});
     } finally {
       setBusy(false);
@@ -172,6 +180,7 @@ export default function Multiplayer() {
             <>
               <BlackjackTable
                 game={game}
+                serverTimeOffset={room.serverTimeOffset}
                 userId={user.id}
                 busy={busy || !connected}
                 onAction={action}

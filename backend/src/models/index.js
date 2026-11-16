@@ -32,7 +32,14 @@ const historySchema = new Schema({
   playedAt: { type: Date, required: true },
 });
 historySchema.index({ user: 1, roundId: 1 }, { unique: true });
-historySchema.index({ user: 1, playedAt: -1 });
+historySchema.index({ user: 1, playedAt: -1, _id: -1 });
+
+// Minimal idempotency keys outlive pruned history; they contain no round results.
+const receiptSchema = new Schema({
+  user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  roundId: { type: String, required: true },
+});
+receiptSchema.index({ user: 1, roundId: 1 }, { unique: true });
 
 const statisticsSchema = new Schema(
   {
@@ -53,6 +60,7 @@ const statisticsSchema = new Schema(
 
 export const User = mongoose.model("User", userSchema);
 export const GameHistory = mongoose.model("GameHistory", historySchema);
+export const RoundReceipt = mongoose.model("RoundReceipt", receiptSchema);
 export const PlayerStatistics = mongoose.model(
   "PlayerStatistics",
   statisticsSchema,

@@ -97,11 +97,10 @@ export function createRoutes({ repository, auth, games, io }) {
   );
   router.get("/history", async (request, response) => {
     const page = Number(request.query.page || 1);
-    if (!Number.isInteger(page) || page < 1 || page > 10000)
-      badRequest("Page must be a positive integer up to 10000.");
+    if (page !== 1)
+      badRequest("Only the latest 20 rounds are retained. Request page 1.");
     response.json({
-      history: await repository.getHistory(String(request.user._id), page),
-      page,
+      history: await repository.getHistory(String(request.user._id)),
       pageSize: 20,
     });
   });
