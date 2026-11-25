@@ -1,25 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import mongoose from "mongoose";
-import { readConfig } from "../../backend/src/config.js";
 import {
-  User,
-  GameHistory,
-  PlayerStatistics,
-  RoundReceipt,
-} from "../../backend/src/models/index.js";
+  requireBrowserTestDatabase,
+  cleanupBrowserUsers,
+} from "./test-storage.js";
 
 const createdIds = [];
 test.afterAll(async () => {
-  if (!createdIds.length) return;
-  await mongoose.connect(readConfig().mongoUri, {
-    serverSelectionTimeoutMS: 8000,
-  });
-  for (const model of [GameHistory, RoundReceipt, PlayerStatistics])
-    await model.deleteMany({ user: { $in: createdIds } });
-  await User.deleteMany({ _id: { $in: createdIds } });
-  await mongoose.disconnect();
+  await cleanupBrowserUsers(createdIds);
 });
+test.beforeAll(() => requireBrowserTestDatabase());
 
 for (const viewport of [
   { width: 1366, height: 768 },
@@ -32,29 +22,24 @@ for (const viewport of [
     await page.goto("/");
     await page.evaluate(() => document.fonts.ready);
     await expect(
-      page.getByRole("heading", { name: /A classic game/ }),
+      page.getByRole("heading", { name: /Welcome to the table/ }),
     ).toBeVisible();
     await expect(page.locator(".hero-actions, .learning-strip")).toHaveCount(0);
     await expect(
       page.getByText("Built to play. Designed to understand."),
     ).toHaveCount(0);
     await expect(
-      page.getByText("No bets. No money. Just the game."),
+      page.getByText("Play blackjack with virtual chips. No real money."),
     ).toBeVisible();
-    await expect(page.locator(".hero-art .playing-card")).toHaveCount(2);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollHeight),
-    ).toBeLessThanOrEqual(viewport.height);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    for (const selector of [".site-header", ".mode-card", "footer"]) {
+    for (const selector of [".site-header", ".mode-card"]) {
       for (const element of await page.locator(selector).all()) {
         const box = await element.boundingBox();
         expect(box.y).toBeGreaterThanOrEqual(0);
-        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
       }
     }
     await expect(page.locator('.mode-card[href="/single"]')).toHaveCount(1);
@@ -156,6 +141,9 @@ for (const count of [0, 20]) {
       "6",
       "4",
       "66.67%",
+      "0",
+      "0",
+      "—",
     ]);
     if (!count)
       await expect(
@@ -234,7 +222,7 @@ test("live multiplayer countdown stays synchronized through HIT and refresh, the
     expect(await seconds(guest)).toBeGreaterThanOrEqual(28);
     await expect(
       host.locator(".player-hand").first().locator(".hand-status"),
-    ).toHaveText("Stand");
+    ).toContainText("Stand");
     await guest.getByRole("button", { name: /^Stand/ }).click();
     for (const page of pages) {
       await expect(

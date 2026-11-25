@@ -1627,3 +1627,331 @@ td {
 .loan-overdue {
   color: #ffbb8a;
 }
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 350px);
+  gap: 3rem;
+  align-items: start;
+  padding: 3rem 0;
+}
+.dashboard-main,
+.dashboard-sidebar {
+  min-width: 0;
+}
+.welcome h1 {
+  font-size: clamp(2.2rem, 3.7vw, 3.8rem);
+  margin: 0 0 0.65rem;
+}
+.welcome p {
+  margin: 0;
+}
+.welcome .eyebrow {
+  margin-bottom: 0.8rem;
+}
+.dashboard .mode-section {
+  padding: 2.8rem 0 1rem;
+}
+.dashboard .mode-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+.dashboard .mode-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dashboard .mode-card {
+  min-height: 210px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  background: #182820;
+  border-color: #385144;
+}
+.dashboard .mode-card h3 {
+  margin: 1.4rem 0 0.5rem;
+  font-size: 1.35rem;
+}
+.dashboard .mode-card p {
+  margin-bottom: 0;
+  max-width: 20rem;
+}
+.dashboard .mode-link {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+.dashboard-rewards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.dashboard-rewards .daily-reward,
+.dashboard-rewards .wheel-entry {
+  margin: 0;
+  min-width: 0;
+}
+.dashboard-rewards .daily-reward {
+  align-content: center;
+}
+.dashboard-rewards .wheel-entry {
+  flex-wrap: wrap;
+}
+.dashboard-sidebar .friends-panel,
+.dashboard-sidebar .leaderboard {
+  margin: 0 0 1rem;
+}
+.dashboard-sidebar h2 {
+  font-size: 1.2rem;
+}
+.dashboard-sidebar .friend-row button,
+.dashboard-sidebar .friend-search button {
+  padding: 0.4rem 0.55rem;
+  gap: 0;
+}
+.dashboard-sidebar .friend-row {
+  font-size: 0.8rem;
+}
+.dashboard-sidebar .leaderboard small {
+  white-space: nowrap;
+}
+main:has(.game-layout) {
+  max-width: 1800px;
+  padding-left: 3%;
+  padding-right: 3%;
+}
+.game-layout {
+  grid-template-columns: minmax(0, 1fr) 245px;
+  gap: 18px;
+}
+.table-surface {
+  min-height: min(67vh, 760px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px 34px 36px;
+  border: 7px solid #3a3526;
+  border-radius: 20px 20px 30% 30% / 20px 20px 12% 12%;
+  background: radial-gradient(
+    ellipse at 50% 32%,
+    #226047 0%,
+    #164331 60%,
+    #0d2e22 100%
+  );
+  box-shadow:
+    inset 0 0 0 2px #b89b57,
+    inset 0 0 85px #04160d99,
+    0 15px 35px #0006;
+}
+.table-surface:before {
+  inset: 10px;
+  border: 1px solid #c8ac5c55;
+  border-radius: 12px 12px 28% 28% / 12px 12px 10% 10%;
+}
+.dealer-hand {
+  padding: 0;
+}
+.dealer-title {
+  font-size: 0.75rem;
+  color: #f0e6c5;
+}
+.player-seats {
+  align-items: end;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.player-hand {
+  background: #0a271baa;
+  border-color: #c6ad5b44;
+  min-width: 0;
+  padding: 0.8rem;
+}
+.active-hand {
+  border-color: #f1d486;
+  box-shadow: 0 0 20px #d6bd8044;
+}
+.ai-seat {
+  min-width: 0;
+}
+.seat-label {
+  margin-bottom: 0.3rem;
+}
+.playing-card {
+  width: 72px;
+  height: 104px;
+  background: linear-gradient(135deg, #fffdf6, #e9e3d4);
+  box-shadow:
+    0 5px 10px #0006,
+    inset 0 0 0 1px #d7cfbb;
+  animation: card-deal 0.38s ease-out both;
+}
+.cards .playing-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.cards .playing-card:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.cards .playing-card:nth-child(4) {
+  animation-delay: 0.24s;
+}
+.card-back {
+  background: repeating-linear-gradient(
+    45deg,
+    #173b2e,
+    #173b2e 4px,
+    #294e3c 4px,
+    #294e3c 6px
+  );
+}
+.hand-status span:first-child {
+  animation: chip-place 0.35s ease-out;
+}
+.round-result {
+  animation: chip-place 0.45s ease-out;
+}
+.wager-chip {
+  color: #e7ce84;
+  white-space: nowrap;
+}
+.payout-chip {
+  color: #e9d18d;
+  font-weight: 700;
+  animation: chip-payout 0.55s ease-out both;
+}
+@keyframes chip-payout {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.table-controls {
+  padding: 14px 2px;
+}
+.table-controls .action-buttons button {
+  min-width: 125px;
+}
+.assistant {
+  padding: 1.1rem;
+}
+.assistant h2 {
+  font-size: 1rem;
+}
+.round-setup {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 1rem;
+  gap: 0.8rem;
+}
+.round-setup label {
+  width: auto;
+  min-width: 130px;
+}
+.round-setup > small {
+  flex-basis: 100%;
+}
+@keyframes card-deal {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) rotate(-4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+@keyframes chip-place {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (max-width: 1000px) {
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1rem;
+  }
+  .dashboard-rewards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 780px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    padding: 2rem 0;
+  }
+  .dashboard .mode-section {
+    padding: 2rem 0 1rem;
+  }
+  .dashboard-sidebar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+  .table-surface {
+    min-height: 500px;
+    padding: 22px 18px 28px;
+  }
+  .playing-card {
+    width: 58px;
+    height: 86px;
+  }
+  .player-seats {
+    flex-wrap: wrap;
+  }
+  .player-hand,
+  .ai-seat {
+    min-width: 130px;
+  }
+  .table-controls {
+    flex-wrap: wrap;
+  }
+  .site-header nav {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 480px) {
+  .dashboard .mode-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard .mode-card {
+    min-height: 175px;
+  }
+  .table-surface {
+    min-height: 460px;
+    border-width: 5px;
+    padding: 20px 12px 25px;
+  }
+  .playing-card {
+    width: 48px;
+    height: 72px;
+  }
+  .card-suit {
+    font-size: 1.6rem;
+  }
+  .player-hand,
+  .ai-seat {
+    min-width: 110px;
+  }
+  .table-controls .action-buttons button {
+    min-width: 100px;
+  }
+  .round-setup > label {
+    min-width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .playing-card,
+  .hand-status span:first-child,
+  .round-result,
+  .payout-chip {
+    animation: none;
+  }
+}

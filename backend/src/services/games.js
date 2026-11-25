@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { validateBet } from "./betting.js";
+import { validateBet, payout } from "./betting.js";
 import {
   createRound,
   applyAction,
@@ -9,6 +9,7 @@ import {
   predictionFeatures,
   determineLegalActions,
   standDisconnectedPlayer,
+  isNaturalBlackjack,
 } from "../game/engine.js";
 
 function fail(message, status = 400) {
@@ -116,6 +117,16 @@ export function createGameService({ repository, predict, shoeFactory }) {
     if (game.status !== "complete" || game.saved) return;
     try {
       await repository.saveRound(game);
+      for (const player of game.players.filter(
+        (entry) => !entry.isBot && entry.wager != null,
+      )) {
+        player.returned = payout(
+          player.wager,
+          player.result,
+          isNaturalBlackjack(player.hand),
+          player.payoutRule || "standard-v1",
+        );
+      }
       game.saved = true;
       game.saveError = null;
     } catch {

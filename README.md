@@ -48,10 +48,8 @@ Open **http://localhost:5173**. Use the hostname configured in `CLIENT_ORIGIN`;
 Create an account, select tablemates, and deal a hand. For multiplayer, use two
 different browser profiles or a normal window plus a private window so each person
 has a separate login cookie. Leaving the multiplayer page disconnects its socket.
-The homepage's Single Player and Multiplayer cards choose the mode. The hero
-keeps its title, description, card artwork, and footnote; duplicate hero buttons
-and the learning strip have been removed. Homepage-specific spacing targets
-1366×768 and 1920×1080 desktop viewports while allowing scrolling on mobile.
+The homepage provides game modes, rewards, friends and rankings; the layout
+stacks on small screens.
 
 If a port is already occupied, stop the old process before starting another copy.
 Vite selects the backend port from the private configuration on the Node side;
@@ -122,9 +120,10 @@ npm run test:ai
 # history retention, wallet concurrency, and actual model inference.
 MONGODB_TEST_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' npm run test:database
 
-# Start all three services with npm run dev before browser tests.
-# Uses Chrome/Chromium; includes live gameplay and mocked profile responses.
-npm run test:browser
+# Start all three services against the SAME dedicated test database first.
+# Set both variables for the browser test process as an additional safeguard.
+MONGODB_TEST_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' \
+MONGODB_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' npm run test:browser
 
 # Production frontend bundle: frontend/dist
 npm run build

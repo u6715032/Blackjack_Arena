@@ -1,26 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import mongoose from "mongoose";
-import { readConfig } from "../../backend/src/config.js";
 import {
-  User,
-  GameHistory,
-  PlayerStatistics,
-  RoundReceipt,
-} from "../../backend/src/models/index.js";
+  requireBrowserTestDatabase,
+  cleanupBrowserUsers,
+} from "./test-storage.js";
 
 const createdIds = [];
 test.afterAll(async () => {
-  if (!createdIds.length) return;
-  await mongoose.connect(readConfig().mongoUri, {
-    serverSelectionTimeoutMS: 8000,
-  });
-  await GameHistory.deleteMany({ user: { $in: createdIds } });
-  await RoundReceipt.deleteMany({ user: { $in: createdIds } });
-  await PlayerStatistics.deleteMany({ user: { $in: createdIds } });
-  await User.deleteMany({ _id: { $in: createdIds } });
-  await mongoose.disconnect();
+  await cleanupBrowserUsers(createdIds);
 });
+test.beforeAll(() => requireBrowserTestDatabase());
 
 async function register(page, label) {
   const suffix = randomUUID().slice(0, 8);
@@ -53,7 +42,7 @@ test("browser: register, real assistant, bot round, saved profile, mobile layout
   page.on("pageerror", (error) => browserErrors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /A classic game/ }),
+    page.getByRole("heading", { name: /Welcome to the table/ }),
   ).toBeVisible();
   await register(page, "Solo");
   await page.getByLabel("Neural network tablemates").selectOption("2");

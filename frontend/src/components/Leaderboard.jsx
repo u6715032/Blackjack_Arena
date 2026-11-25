@@ -30,6 +30,7 @@ export default function Leaderboard() {
       window.removeEventListener("chips:changed", refresh);
     };
   }, [refresh]);
+  const visiblePlayers = data?.players.slice(0, 5) || [];
   return (
     <section className="leaderboard">
       <h2>Chip leaderboard</h2>
@@ -43,7 +44,7 @@ export default function Leaderboard() {
       </label>
       {error && <p role="alert">{error}</p>}
       <ol>
-        {data?.players.map((player) => (
+        {visiblePlayers.map((player) => (
           <li
             key={player.id}
             className={`${player.rank <= 3 ? "top-rank" : ""} ${player.id === user?.id ? "current-rank" : ""}`}
@@ -59,7 +60,7 @@ export default function Leaderboard() {
           </li>
         ))}
       </ol>
-      {position && !data?.players.some((player) => player.id === user?.id) && (
+      {position && !visiblePlayers.some((player) => player.id === user?.id) && (
         <p>
           Your rank: #{position.rank} · {position.chips.toLocaleString()} chips
         </p>

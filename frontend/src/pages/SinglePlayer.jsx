@@ -45,9 +45,7 @@ export default function SinglePlayer() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">YOUR PACE. YOUR TABLE.</span>
           <h1>Single player</h1>
-          <p>Play the dealer. Learn alongside the network.</p>
         </div>
         <span className="outline-tag">VIRTUAL CHIPS ONLY</span>
       </div>
@@ -85,7 +83,10 @@ export default function SinglePlayer() {
               <option value="experimental">Experimental (optional)</option>
             </select>
           </label>
-          <small>Standard returns 2× on a win, 2.5× on a natural blackjack, and the stake on a push. Payouts round down to whole chips.</small>
+          <small>
+            Standard returns 2× on a win, 2.5× on a natural blackjack, and the
+            stake on a push. Payouts round down to whole chips.
+          </small>
           {payoutMode === "experimental" && (
             <small>
               After 10 saved games, players below 40% wins receive 2.1× on

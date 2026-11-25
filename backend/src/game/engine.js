@@ -228,6 +228,7 @@ export function publicGame(game) {
       result: player.result,
       wager: player.wager ?? null,
       payoutRule: player.payoutRule ?? null,
+      returned: player.returned ?? null,
     })),
     dealer: {
       hand: revealed ? game.dealerHand : [game.dealerHand[0], { hidden: true }],

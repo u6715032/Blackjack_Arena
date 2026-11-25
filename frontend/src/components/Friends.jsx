@@ -275,7 +275,14 @@ export default function Friends() {
           ))}
         </details>
       )}
-      <Loans loans={loans} userId={user.id} busy={busy} onAction={loanAction} />
+      {(!active || minimized) && (
+        <Loans
+          loans={loans}
+          userId={user.id}
+          busy={busy}
+          onAction={loanAction}
+        />
+      )}
       {active && (
         <aside
           className="chat-widget"

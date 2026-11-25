@@ -31,11 +31,14 @@ set and unique ledger keys, and test code must never use the application's URI.
 6. Transfers and loans: initial implementation includes atomic receipts, explicit
    consent, partial repayment, overdue restrictions and durable obligations.
    Complete browser-journey and process-restart verification in phase 8.
-7. Responsive homepage and shared game-table redesign.
+7. Responsive dashboard and shared game-table redesign: implemented, including
+   dealt-card and chip animations and an optional sound toggle. The two-account
+   browser journey and desktop/mobile screenshots were exercised; final broad
+   browser and accessibility verification remains in phase 8.
 8. End-to-end, concurrency, browser, recovery and security verification; complete
    API, schema, architecture and economic documentation.
 
-Phases 1–6 have an initial implementation. Phases 7–8 remain incomplete.
+Phases 1–7 have an initial implementation. Phase 8 remains incomplete.
 
 ## Wallet migration and rollback considerations
 

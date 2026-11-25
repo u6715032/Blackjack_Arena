@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const suitSymbols = { clubs: "♣", diamonds: "♦", hearts: "♥", spades: "♠" };
 export function PlayingCard({ card }) {
@@ -44,8 +44,8 @@ export function PlayerHand({ player, active, isYou }) {
       </div>
       <div className="hand-status">
         {player.wager != null && (
-          <span>
-            {player.wager} chips ·{" "}
+          <span className="wager-chip">
+            ● {player.wager} chips ·{" "}
             {player.payoutRule === "experimental-boost-v1"
               ? "Boosted payout · "
               : ""}
@@ -94,7 +94,6 @@ export function DealerHand({ dealer }) {
           <PlayingCard key={index} card={card} />
         ))}
       </div>
-      <small>Stands on all 17s</small>
     </section>
   );
 }
@@ -130,6 +129,7 @@ export function GameResult({ game, userId }) {
         Your total: {player?.total} <span className="muted">/</span> Dealer:{" "}
         {game.dealer.total}
       </p>
+      {game.saved && player?.returned != null && <p className="payout-chip">● {player.returned} chips returned</p>}
       <small>
         {game.saved
           ? "Result saved to your history."
@@ -164,13 +164,7 @@ export function StrategyAssistant({ game, userId, onAdvice, onAction, busy }) {
   }
   return (
     <aside className="assistant panel">
-      <div className="assistant-icon">◈</div>
-      <span className="eyebrow">A SECOND OPINION</span>
       <h2>Strategy assistant</h2>
-      <p>
-        Four inputs. One trained network. A little perspective for your next
-        move.
-      </p>
       <button
         className="secondary full-width"
         disabled={!enabled || busy || loading}
@@ -207,14 +201,6 @@ export function StrategyAssistant({ game, userId, onAdvice, onAction, busy }) {
           <small>You decide. Advice never plays a move automatically.</small>
         </div>
       )}
-      <div className="assistant-note">
-        <span>234</span>
-        <small>
-          trained parameters
-          <br />
-          Shared by bots & assistant
-        </small>
-      </div>
     </aside>
   );
 }
@@ -251,19 +237,40 @@ export function BlackjackTable({
     (player) => player.id === game.currentPlayerId,
   );
   const yourTurn = game.status === "playing" && game.currentPlayerId === userId;
+  const [sound, setSound] = useState(
+    () => localStorage.getItem("blackjack-sound") === "on",
+  );
+  const previous = useRef(`${game.id}:${game.revision}:${game.status}`);
+  useEffect(() => {
+    const next = `${game.id}:${game.revision}:${game.status}`;
+    if (sound && previous.current !== next) {
+      try {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        const context = new Context();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = game.status === "complete" ? 520 : 340;
+        gain.gain.setValueAtTime(0.035, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          context.currentTime + 0.12,
+        );
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.12);
+        oscillator.onended = () => context.close();
+      } catch {
+        /* Sound is optional when the browser blocks audio. */
+      }
+    }
+    previous.current = next;
+  }, [game.id, game.revision, game.status, sound]);
   return (
     <div className="game-layout">
       <div>
         <div className="table-surface">
-          <div className="table-topline">
-            <span className="live-dot" /> SIX DECKS{" "}
-            <span>HIT / STAND ONLY</span>
-          </div>
           <DealerHand dealer={game.dealer} />
-          <div className="table-watermark">
-            BLACKJACK <span>ARENA</span>
-            <small>PLAY. LEARN. REPEAT.</small>
-          </div>
           <div className="player-seats">
             {game.players.map((player) =>
               player.isBot ? (
@@ -305,6 +312,17 @@ export function BlackjackTable({
               )}
           </div>
           <ActionButtons enabled={yourTurn} busy={busy} onAction={onAction} />
+          <button
+            className="text-button sound-toggle"
+            onClick={() =>
+              setSound((value) => {
+                localStorage.setItem("blackjack-sound", value ? "off" : "on");
+                return !value;
+              })
+            }
+          >
+            {sound ? "Sound on" : "Sound off"}
+          </button>
         </div>
         <GameResult game={game} userId={userId} />
       </div>

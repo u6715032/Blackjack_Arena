@@ -85,9 +85,7 @@ export default function Multiplayer() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">BETTER IN GOOD COMPANY</span>
           <h1>Multiplayer</h1>
-          <p>A private table for you and your friends.</p>
         </div>
         <span className="outline-tag">
           <span className={`status-dot ${connected ? "gold" : ""}`} />
