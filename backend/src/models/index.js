@@ -13,9 +13,34 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true },
     passwordHash: { type: String, required: true, select: false },
     tokenVersion: { type: Number, default: 0 },
+    chips: { type: Number, min: 0, validate: Number.isSafeInteger },
+    lastDailyRewardAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
+userSchema.index({ chips: -1, _id: 1 });
+
+const chipTransactionSchema = new Schema(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    key: { type: String, required: true, unique: true },
+    kind: { type: String, required: true },
+    amount: { type: Number, required: true, validate: Number.isSafeInteger },
+    balanceAfter: {
+      type: Number,
+      required: true,
+      min: 0,
+      validate: Number.isSafeInteger,
+    },
+  },
+  { timestamps: true },
+);
+chipTransactionSchema.index({ user: 1, createdAt: -1, _id: -1 });
 
 const historySchema = new Schema({
   user: {
@@ -59,6 +84,10 @@ const statisticsSchema = new Schema(
 );
 
 export const User = mongoose.model("User", userSchema);
+export const ChipTransaction = mongoose.model(
+  "ChipTransaction",
+  chipTransactionSchema,
+);
 export const GameHistory = mongoose.model("GameHistory", historySchema);
 export const RoundReceipt = mongoose.model("RoundReceipt", receiptSchema);
 export const PlayerStatistics = mongoose.model(

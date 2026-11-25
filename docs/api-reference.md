@@ -10,9 +10,9 @@ token, hidden card, shoe order, or database credentials are response fields.
 | --- | --- | --- |
 | GET `/api/health` | None | `{ready}` for database connection |
 | POST `/api/auth/register` | username, email, password | `{user}` and session cookie |
-| POST `/api/auth/login` | email, password | `{user}` and session cookie |
+| POST `/api/auth/login` | email, password | `{user,rewardGranted,nextRewardAt}` and session cookie |
 | POST `/api/auth/logout` | Session cookie | Revoke all user's sessions, clear cookie |
-| GET `/api/auth/me` | Session cookie | `{user}` |
+| GET `/api/auth/me` | Session cookie | `{user,rewardGranted,nextRewardAt}`; claims an eligible reward |
 | GET `/api/profile` | Session cookie | `{user,statistics}` |
 | GET `/api/statistics` | Session cookie | `{statistics}` |
 | GET `/api/history` | Session cookie; optional `page=1` | `{history,pageSize:20}` |
@@ -51,7 +51,11 @@ revision; the prediction itself never plays a human move. In multiplayer an
 already-expired deadline is enforced before advice: the server stands the player
 and rejects the request. The deadline remains active while inference is awaited.
 
-Public users contain id, username, email, createdAt. Public game snapshots contain
+The authenticated user object includes `chips` after wallet initialization.
+Login and session restoration atomically grant an eligible 10-chip reward and
+return the next eligibility time as an ISO timestamp. Registration creates a
+100-chip opening balance; the first subsequent login or session restoration can
+claim the first daily reward. Public users contain id, username, email, createdAt. Public game snapshots contain
 id, mode, revision, status, currentPlayerId, players, dealer, saved, saveError,
 aiError. Multiplayer snapshots also contain `turnDeadline`: a Unix timestamp in
 milliseconds for the active human's deadline, or `null` after completion. The

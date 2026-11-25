@@ -71,8 +71,15 @@ export function createRoutes({ repository, auth, games, io }) {
       return response
         .status(401)
         .json({ error: "Email or password is incorrect." });
-    auth.signIn(response, user);
-    response.json({ user: publicUser(user) });
+    const wallet = repository.accessWallet
+      ? await repository.accessWallet(user._id)
+      : { user };
+    auth.signIn(response, wallet.user);
+    response.json({
+      user: publicUser(wallet.user),
+      rewardGranted: wallet.rewardGranted,
+      nextRewardAt: wallet.nextRewardAt,
+    });
   });
   router.use(auth.requireUser);
   router.post("/auth/logout", async (request, response) => {
@@ -81,9 +88,16 @@ export function createRoutes({ repository, auth, games, io }) {
     auth.clear(response);
     response.json({ message: "Logged out from all devices." });
   });
-  router.get("/auth/me", (request, response) =>
-    response.json({ user: publicUser(request.user) }),
-  );
+  router.get("/auth/me", async (request, response) => {
+    const wallet = repository.accessWallet
+      ? await repository.accessWallet(request.user._id)
+      : { user: request.user };
+    response.json({
+      user: publicUser(wallet.user),
+      rewardGranted: wallet.rewardGranted,
+      nextRewardAt: wallet.nextRewardAt,
+    });
+  });
   router.get("/profile", async (request, response) =>
     response.json({
       user: publicUser(request.user),

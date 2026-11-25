@@ -7,6 +7,7 @@ export function publicUser(user) {
     username: user.username,
     email: user.email,
     createdAt: user.createdAt,
+    ...(Number.isSafeInteger(user.chips) ? { chips: user.chips } : {}),
   };
 }
 

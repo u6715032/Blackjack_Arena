@@ -4,8 +4,10 @@ import {
   GameHistory,
   PlayerStatistics,
   RoundReceipt,
+  ChipTransaction,
 } from "../models/index.js";
 import { calculateHandTotal } from "../game/engine.js";
+import { initializeWallet, accessWallet } from "./wallet.js";
 
 mongoose.set("bufferCommands", false);
 
@@ -16,6 +18,7 @@ export async function connectDatabase(mongoUri) {
   await GameHistory.init();
   await PlayerStatistics.init();
   await RoundReceipt.init();
+  await ChipTransaction.init();
   await cleanupHistory();
 }
 
@@ -93,10 +96,12 @@ export const database = {
     return mongoose.connection.transaction(async (session) => {
       const [user] = await User.create([values], { session });
       await PlayerStatistics.create([{ user: user._id }], { session });
-      return user;
+      await initializeWallet(user._id, session);
+      return User.findById(user._id).session(session);
     });
   },
   findUserByEmail: (email) => User.findOne({ email }).select("+passwordHash"),
+  accessWallet,
   findUserById: (id) =>
     mongoose.isValidObjectId(id) ? User.findById(id) : null,
   revokeSessions: (id) =>

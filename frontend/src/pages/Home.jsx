@@ -1,6 +1,21 @@
 import { Link } from "react-router-dom";
 import { PlayingCard } from "../components/GameTable";
+import { useEffect, useState } from "react";
+import { useAuth } from "../AuthContext";
 export default function Home() {
+  const { user, reward } = useAuth();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const remaining = reward?.nextRewardAt
+    ? Math.max(
+        0,
+        Math.ceil((new Date(reward.nextRewardAt).getTime() - now) / 1000),
+      )
+    : 0;
+  const countdown = `${Math.floor(remaining / 3600)}h ${Math.floor((remaining % 3600) / 60)}m ${remaining % 60}s`;
   return (
     <div className="home-page">
       <section className="hero">
@@ -17,7 +32,7 @@ export default function Home() {
             trained neural network.
           </p>
           <div className="hero-footnote">
-            <span>♠</span> No bets. No money. Just the game.
+            <span>♠</span> Virtual chips only. No real money.
           </div>
         </div>
         <div
@@ -35,6 +50,17 @@ export default function Home() {
           <span className="hero-art-bottom">YOUR NEXT HAND AWAITS</span>
         </div>
       </section>
+      {user && (
+        <section className="daily-reward" aria-label="Daily reward">
+          <strong>Daily reward · 10 chips</strong>
+          <span>
+            {reward?.granted ? "10 chips added to your balance. " : ""}
+            {remaining
+              ? `Next reward in ${countdown}`
+              : "Access your session to collect your next reward."}
+          </span>
+        </section>
+      )}
       <section className="mode-section">
         <div className="section-heading">
           <div>

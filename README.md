@@ -2,7 +2,8 @@
 
 A university Senior Project: six-deck Blackjack with accounts, neural network
 tablemates, a human strategy assistant, and private rooms for 2–4 human players.
-There is no betting, currency, chat, leaderboard, or real-money feature.
+Accounts now have virtual chips and a daily reward. Betting, chat, leaderboard,
+and real-money features are not yet implemented.
 
 The application uses plain JavaScript React/Vite, Express, Socket.IO, MongoDB
 Atlas/Mongoose, and a local Python FastAPI/PyTorch service. Offline model training
@@ -115,9 +116,10 @@ npm test
 # Actual checkpoint loading, preprocessing, input validation, TF/PT parity
 npm run test:ai
 
-# Start FastAPI first. Uses configured MongoDB and actual model inference;
-# includes history retention, rollback, concurrency, and duplicate-save checks.
-npm run test:database
+# Start FastAPI first. Explicitly select a disposable replica-set database whose
+# name contains "test"; never use the application database. The tests include
+# history retention, wallet concurrency, and actual model inference.
+MONGODB_TEST_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' npm run test:database
 
 # Start all three services with npm run dev before browser tests.
 # Uses Chrome/Chromium; includes live gameplay and mocked profile responses.
@@ -128,8 +130,21 @@ npm run build
 ```
 
 Use a disposable dedicated MongoDB database for integration/browser checks.
-Test-account cleanup targets only created IDs, but normal backend/database startup
-also applies the history retention policy to existing users in that database.
+Test-account cleanup targets only created IDs, but test database startup also
+applies the history retention policy to existing users in that database. The
+integration suite requires `MONGODB_TEST_URI` and will not use `MONGODB_URI`.
+
+## Virtual chips (work in progress)
+
+New accounts receive 100 virtual chips. Existing accounts are migrated lazily
+when they log in or restore their session: a MongoDB transaction initializes the
+missing balance and writes an opening ledger entry without changing statistics or
+history. The first login/session restoration also awards 10 chips, then another
+10 after each rolling 24-hour interval when the session is accessed. Missed days
+do not accumulate. The balance and reward entry commit together; concurrent
+claims serialize on the user record. The database must support transactions.
+Chips have no monetary value, purchase, withdrawal, or conversion. Betting and
+all other V2 economy features remain unfinished; see [the implementation plan](docs/v2-implementation-plan.md).
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional

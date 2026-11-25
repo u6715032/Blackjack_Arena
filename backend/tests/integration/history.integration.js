@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import mongoose from "mongoose";
-import { readConfig } from "../../src/config.js";
 import {
   connectDatabase,
   database,
@@ -13,9 +12,11 @@ import {
   GameHistory,
   PlayerStatistics,
   RoundReceipt,
+  ChipTransaction,
 } from "../../src/models/index.js";
 import { createRound, processStand } from "../../src/game/engine.js";
 import { testShoe } from "../helpers.js";
+import { testDatabaseUri } from "./test-database.js";
 
 function completedRound(ids, playedAt = new Date()) {
   const game = createRound(
@@ -34,7 +35,7 @@ function completedRound(ids, playedAt = new Date()) {
 test("MongoDB retention, lifetime statistics, durable idempotency and legacy cleanup", async (t) => {
   const ids = [];
   try {
-    await connectDatabase(readConfig().mongoUri);
+    await connectDatabase(testDatabaseUri());
     for (let index = 0; index < 3; index += 1) {
       const suffix = randomUUID().replaceAll("-", "").slice(0, 12);
       const user = await database.createUser({
@@ -201,6 +202,7 @@ test("MongoDB retention, lifetime statistics, durable idempotency and legacy cle
       await GameHistory.deleteMany({ user: { $in: ids } });
       await RoundReceipt.deleteMany({ user: { $in: ids } });
       await PlayerStatistics.deleteMany({ user: { $in: ids } });
+      await ChipTransaction.deleteMany({ user: { $in: ids } });
       await User.deleteMany({ _id: { $in: ids } });
     }
     await mongoose.disconnect();
