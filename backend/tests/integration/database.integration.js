@@ -12,6 +12,7 @@ import {
   PlayerStatistics,
   RoundReceipt,
   ChipTransaction,
+  Bet,
 } from "../../src/models/index.js";
 import { createApplication } from "../../src/app.js";
 import { createRound, processStand } from "../../src/game/engine.js";
@@ -143,6 +144,7 @@ test("real MongoDB: accounts, real AI bots/advice, durable history, statistics a
       await RoundReceipt.deleteMany({ user: { $in: createdIds } });
       await PlayerStatistics.deleteMany({ user: { $in: createdIds } });
       await ChipTransaction.deleteMany({ user: { $in: createdIds } });
+      await Bet.deleteMany({ user: { $in: createdIds } });
       await User.deleteMany({ _id: { $in: createdIds } });
     }
     await mongoose.disconnect();

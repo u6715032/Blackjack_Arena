@@ -1393,3 +1393,21 @@ td {
 .daily-reward span {
   color: #e5e2d7;
 }
+.bet-control {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.bet-control input {
+  width: 7rem;
+}
+.bet-denominations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.bet-denominations button {
+  min-width: 2.5rem;
+  padding: 0.45rem;
+}

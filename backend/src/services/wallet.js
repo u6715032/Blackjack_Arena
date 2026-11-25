@@ -41,6 +41,36 @@ export async function creditWallet({ userId, amount, key, kind, session }) {
   return entry;
 }
 
+export async function debitWallet({ userId, amount, key, kind, session }) {
+  if (!session || !Number.isSafeInteger(amount) || amount <= 0 || !key || !kind)
+    throw new Error("Invalid wallet debit.");
+  const prior = await ChipTransaction.findOne({ key }).session(session).lean();
+  if (prior) {
+    if (
+      String(prior.user) !== String(userId) ||
+      prior.amount !== -amount ||
+      prior.kind !== kind
+    )
+      throw new Error("Wallet transaction key reused with different terms.");
+    return prior;
+  }
+  const user = await User.findOneAndUpdate(
+    { _id: userId, chips: { $gte: amount } },
+    { $inc: { chips: -amount } },
+    { session, returnDocument: "after" },
+  );
+  if (!user) {
+    const error = new Error("Insufficient chips for this wager.");
+    error.status = 409;
+    throw error;
+  }
+  const [entry] = await ChipTransaction.create(
+    [{ user: userId, key, kind, amount: -amount, balanceAfter: user.chips }],
+    { session },
+  );
+  return entry;
+}
+
 export async function initializeWallet(userId, session) {
   // Match the stored field, not Mongoose defaults, so existing accounts migrate once.
   const result = await User.updateOne(

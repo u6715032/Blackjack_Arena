@@ -17,7 +17,8 @@ token, hidden card, shoe order, or database credentials are response fields.
 | GET `/api/statistics` | Session cookie | `{statistics}` |
 | GET `/api/history` | Session cookie; optional `page=1` | `{history,pageSize:20}` |
 | GET `/api/games/single` | Session cookie | `{game}` or `{game:null}` |
-| POST `/api/games/single` | `{botCount:0|1|2}` | `{game}` |
+| GET `/api/wallet` | Session cookie | `{chips}` |
+| POST `/api/games/single` | `{botCount:0|1|2,wager,payoutMode}` | `{game}`; mode is `standard` or `experimental` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
 | POST `/api/games/single/advice` | roundId, revision | Model recommendation |
 | POST `/api/games/single/retry` | Session cookie | Retry paused bot or unsaved result |
@@ -76,6 +77,7 @@ socket, and room mutations use the same authoritative engine as single player.
 | `room:join` | `{code:"ABC234"}` | Joined room |
 | `room:get` | `{}` | Own room or null |
 | `room:start` | `{}` | Room with new round (host only) |
+| `room:wager` | `{amount}` | Set the authenticated player's next wager |
 | `game:action` | action, roundId, revision | Updated room |
 | `game:advice` | roundId, revision | Recommendation for own hand |
 | `game:save` | `{}` | Room after saving retry |

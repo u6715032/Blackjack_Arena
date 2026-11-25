@@ -104,6 +104,10 @@ export function createRoutes({ repository, auth, games, io }) {
       statistics: await repository.getStatistics(String(request.user._id)),
     }),
   );
+  router.get("/wallet", async (request, response) => {
+    const user = await repository.findUserById(String(request.user._id));
+    response.json({ chips: user.chips });
+  });
   router.get("/statistics", async (request, response) =>
     response.json({
       statistics: await repository.getStatistics(String(request.user._id)),
@@ -123,7 +127,12 @@ export function createRoutes({ repository, auth, games, io }) {
   );
   router.post("/games/single", async (request, response) =>
     response.status(201).json({
-      game: await games.startSingle(request.user, request.body?.botCount),
+      game: await games.startSingle(
+        request.user,
+        request.body?.botCount,
+        request.body?.wager,
+        request.body?.payoutMode,
+      ),
     }),
   );
   router.post("/games/single/action", async (request, response) =>

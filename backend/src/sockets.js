@@ -73,6 +73,7 @@ export function configureSockets(io, auth, games, clientOrigin) {
       return room;
     });
     on("room:start", () => games.startRoom(userId));
+    on("room:wager", (data) => games.setRoomWager(userId, data.amount));
     on("game:action", (data) => games.roomAction(userId, data));
     on("game:advice", (data) => games.roomAdvice(userId, data));
     on("game:save", () => games.retryRoomSave(userId));

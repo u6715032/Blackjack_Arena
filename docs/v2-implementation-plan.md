@@ -19,10 +19,9 @@ set and unique ledger keys, and test code must never use the application's URI.
 1. Audit, baseline tests and this plan: completed.
 2. Wallet, opening balances, daily reward and balance display: initial implementation;
    MongoDB concurrency and migration tests execute against a dedicated replica set.
-3. Betting: persist each wager before exposing a round, settle with game history
-   in one transaction, establish recovery/refunds and transparent payout rules;
-   synchronize individual multiplayer bets before dealing. Add RTP analytics and
-   unbiased simulations.
+3. Betting: implemented initial durable wagers, settlement, startup refunds,
+   player-selected multiplayer wagers, observed RTP, payout configurations and
+   simulation. Full process-restart and browser journeys remain to be verified.
 4. Wheel and leaderboard: transactional, cryptographically selected outcomes,
    disclosed probabilities and indexed rankings.
 5. Friendships and private messages: authorization, presence and retention, while
@@ -33,8 +32,7 @@ set and unique ledger keys, and test code must never use the application's URI.
 8. End-to-end, concurrency, browser, recovery and security verification; complete
    API, schema, architecture and economic documentation.
 
-Only phases 1 and the initial wallet foundation are present. Later phases are
-not implemented and no claim of full V2 completion is made.
+Phases 1–3 have an initial implementation. Phases 4–8 remain incomplete.
 
 ## Wallet migration and rollback considerations
 
@@ -49,8 +47,8 @@ does not remove new fields or ledger entries; never reset balances during rollba
 
 The timestamp uses the application server's UTC clock, so hosts need synchronized
 clocks. Daily rewards do not accumulate. This initial ledger supports credits;
-it is not yet a complete debit/transfer/settlement system. The current interface
-updates balance when a session is established, not by cross-tab notifications.
+now supports wager debits, settlement and refund credits, but transfers are not
+implemented. Balance updates are refreshed after game events, not across all tabs.
 
 ## Baseline and current verification
 

@@ -43,6 +43,14 @@ export function PlayerHand({ player, active, isYou }) {
         ))}
       </div>
       <div className="hand-status">
+        {player.wager != null && (
+          <span>
+            {player.wager} chips ·{" "}
+            {player.payoutRule === "experimental-boost-v1"
+              ? "Boosted payout · "
+              : ""}
+          </span>
+        )}
         {player.blackjack
           ? "Natural Blackjack"
           : active

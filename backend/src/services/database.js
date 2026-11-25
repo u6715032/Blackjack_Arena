@@ -5,9 +5,11 @@ import {
   PlayerStatistics,
   RoundReceipt,
   ChipTransaction,
+  Bet,
 } from "../models/index.js";
 import { calculateHandTotal } from "../game/engine.js";
 import { initializeWallet, accessWallet } from "./wallet.js";
+import { placeBets, settleBet } from "./betting.js";
 
 mongoose.set("bufferCommands", false);
 
@@ -19,6 +21,7 @@ export async function connectDatabase(mongoUri) {
   await PlayerStatistics.init();
   await RoundReceipt.init();
   await ChipTransaction.init();
+  await Bet.init();
   await cleanupHistory();
 }
 
@@ -102,12 +105,25 @@ export const database = {
   },
   findUserByEmail: (email) => User.findOne({ email }).select("+passwordHash"),
   accessWallet,
+  placeBets,
   findUserById: (id) =>
     mongoose.isValidObjectId(id) ? User.findById(id) : null,
   revokeSessions: (id) =>
     User.updateOne({ _id: id }, { $inc: { tokenVersion: 1 } }),
-  getStatistics: (user) =>
-    PlayerStatistics.findOne({ user }).select("-_id -__v -user"),
+  async getStatistics(user) {
+    const statistics = await PlayerStatistics.findOne({ user }).select(
+      "-_id -__v -user",
+    );
+    if (!statistics) return null;
+    statistics.set(
+      "actualRtp",
+      statistics.chipsWagered
+        ? (statistics.chipsReturned / statistics.chipsWagered) * 100
+        : null,
+      { strict: false },
+    );
+    return statistics;
+  },
   getHistory: (user) =>
     GameHistory.find({ user })
       .sort({ playedAt: -1, _id: -1 })
@@ -156,6 +172,7 @@ export const database = {
           );
           await statistics.save({ session });
         }
+        await settleBet(game, player, statistics, session);
         while (
           (await pruneHistoryBatch(player.id, session)) === cleanupBatchSize
         ) {

@@ -32,9 +32,21 @@ export function AuthProvider({ children }) {
     setUser(null);
     setReward(null);
   }
+  async function refreshBalance() {
+    const { chips } = await api("/wallet");
+    setUser((current) => (current ? { ...current, chips } : current));
+  }
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, reward, authenticate, logout }}
+      value={{
+        user,
+        loading,
+        error,
+        reward,
+        authenticate,
+        logout,
+        refreshBalance,
+      }}
     >
       {children}
     </AuthContext.Provider>

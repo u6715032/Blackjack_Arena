@@ -54,6 +54,14 @@ export default function Profile() {
             ["Losses", statistics.losses],
             ["Pushes", statistics.pushes],
             ["Win percentage", `${statistics.winPercentage}%`],
+            ["Chips wagered", statistics.chipsWagered ?? 0],
+            ["Chips returned", statistics.chipsReturned ?? 0],
+            [
+              "Observed RTP",
+              statistics.actualRtp == null
+                ? "—"
+                : `${statistics.actualRtp.toFixed(2)}%`,
+            ],
           ].map(([label, value]) => (
             <div className="panel statistic" key={label}>
               <span className="eyebrow">{label}</span>

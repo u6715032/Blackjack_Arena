@@ -2,8 +2,8 @@
 
 A university Senior Project: six-deck Blackjack with accounts, neural network
 tablemates, a human strategy assistant, and private rooms for 2–4 human players.
-Accounts now have virtual chips and a daily reward. Betting, chat, leaderboard,
-and real-money features are not yet implemented.
+Accounts have virtual chips, daily rewards, and blackjack wagers. Chat,
+leaderboard, and real-money features are not implemented.
 
 The application uses plain JavaScript React/Vite, Express, Socket.IO, MongoDB
 Atlas/Mongoose, and a local Python FastAPI/PyTorch service. Offline model training
@@ -143,8 +143,20 @@ history. The first login/session restoration also awards 10 chips, then another
 10 after each rolling 24-hour interval when the session is accessed. Missed days
 do not accumulate. The balance and reward entry commit together; concurrent
 claims serialize on the user record. The database must support transactions.
-Chips have no monetary value, purchase, withdrawal, or conversion. Betting and
-all other V2 economy features remain unfinished; see [the implementation plan](docs/v2-implementation-plan.md).
+Chips have no monetary value, purchase, withdrawal, or conversion. Single-player
+and multiplayer wagers use integer chips from 1 to 1,000,000. Standard ordinary
+wins return twice the wager, naturals return 2.5 times the wager, pushes return the
+stake and losses return zero. Fractional chips are rounded down; a one-chip natural
+therefore returns two chips. Each multiplayer player chooses a wager, defaulting
+to one chip. If any player cannot afford their wager, the entire deal is rejected.
+
+Single-player offers an optional experimental rule: after at least ten saved
+games, a player with less than 40% wins gets 2.1 times the stake on ordinary wins;
+otherwise standard rules apply. Naturals and pushes are unchanged. The selected
+rule is stored with the wager before cards are shown. Multiplayer always uses the
+standard rule. Card shuffling is unchanged. See [economics](docs/v2-economics.md)
+for RTP interpretation, simulation and restart recovery, and [the implementation
+plan](docs/v2-implementation-plan.md) for remaining work.
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional
@@ -233,14 +245,16 @@ there is no extra controller directory duplicating them.
 
 This is a local, single-server project; it has not been publicly deployed. Active
 single-player games, private rooms, and their locks live in process memory and
-reset on restart. MongoDB retains each user's latest 20 completed round records
+reset on restart. At startup, the single-server backend refunds pending wagers;
+completed wagers already settled remain unchanged. Do not run multiple backend
+instances against the same database: one instance would refund another's active
+wagers. MongoDB retains each user's latest 20 completed round records
 across single-player and multiplayer, ordered by `playedAt` descending and then
 `_id` descending. Profile history has no pagination. Lifetime game counts,
 wins/losses/pushes, and win percentage cover all saved rounds, including pruned
 history. Minimal `RoundReceipt` keys remain so an old save retry cannot count twice.
 A failed result save is visible and retryable while that process is running;
-a restart can lose it.
-Do not restart while demonstrating an unfinished round.
+a restart can lose the unsaved result, in which case its pending wager is refunded.
 
 Disconnecting a user's last socket stands their unfinished multiplayer hand,
 including a future turn. Reconnecting cannot undo the stand. The host role moves

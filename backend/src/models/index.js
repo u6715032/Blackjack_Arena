@@ -42,6 +42,36 @@ const chipTransactionSchema = new Schema(
 );
 chipTransactionSchema.index({ user: 1, createdAt: -1, _id: -1 });
 
+const betSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    roundId: { type: String, required: true },
+    mode: { type: String, enum: ["single", "multi"], required: true },
+    amount: {
+      type: Number,
+      required: true,
+      min: 1,
+      validate: Number.isSafeInteger,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "settled", "refunded"],
+      default: "pending",
+      required: true,
+    },
+    returned: {
+      type: Number,
+      min: 0,
+      default: 0,
+      validate: Number.isSafeInteger,
+    },
+    payoutRule: { type: String, required: true },
+  },
+  { timestamps: true },
+);
+betSchema.index({ user: 1, roundId: 1 }, { unique: true });
+betSchema.index({ status: 1, _id: 1 });
+
 const historySchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
@@ -79,6 +109,8 @@ const statisticsSchema = new Schema(
     losses: { type: Number, default: 0 },
     pushes: { type: Number, default: 0 },
     winPercentage: { type: Number, default: 0 },
+    chipsWagered: { type: Number, default: 0 },
+    chipsReturned: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -88,6 +120,7 @@ export const ChipTransaction = mongoose.model(
   "ChipTransaction",
   chipTransactionSchema,
 );
+export const Bet = mongoose.model("Bet", betSchema);
 export const GameHistory = mongoose.model("GameHistory", historySchema);
 export const RoundReceipt = mongoose.model("RoundReceipt", receiptSchema);
 export const PlayerStatistics = mongoose.model(

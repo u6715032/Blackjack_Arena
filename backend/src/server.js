@@ -2,10 +2,12 @@ import mongoose from "mongoose";
 import { readConfig } from "./config.js";
 import { connectDatabase, database } from "./services/database.js";
 import { createApplication } from "./app.js";
+import { refundPendingBets } from "./services/betting.js";
 
 try {
   const config = readConfig();
   await connectDatabase(config.mongoUri);
+  await refundPendingBets();
   console.log("MongoDB connected; required indexes ready.");
   const { server, io } = createApplication({ config, repository: database });
   server.listen(config.port, () =>
