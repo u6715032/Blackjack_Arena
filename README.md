@@ -2,8 +2,8 @@
 
 A university Senior Project: six-deck Blackjack with accounts, neural network
 tablemates, a human strategy assistant, and private rooms for 2–4 human players.
-Accounts have virtual chips, daily rewards, and blackjack wagers. Chat,
-leaderboard, and real-money features are not implemented.
+Accounts have virtual chips, daily rewards, blackjack wagers, a lucky wheel and
+a public leaderboard. Chat and real-money features are not implemented.
 
 The application uses plain JavaScript React/Vite, Express, Socket.IO, MongoDB
 Atlas/Mongoose, and a local Python FastAPI/PyTorch service. Offline model training

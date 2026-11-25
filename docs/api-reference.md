@@ -9,6 +9,7 @@ token, hidden card, shoe order, or database credentials are response fields.
 | Method and path | Input | Result |
 | --- | --- | --- |
 | GET `/api/health` | None | `{ready}` for database connection |
+| GET `/api/leaderboard?page=1` | Public; 20 results per page | Rank, user ID, username and chips only |
 | POST `/api/auth/register` | username, email, password | `{user}` and session cookie |
 | POST `/api/auth/login` | email, password | `{user,rewardGranted,nextRewardAt}` and session cookie |
 | POST `/api/auth/logout` | Session cookie | Revoke all user's sessions, clear cookie |
@@ -18,6 +19,9 @@ token, hidden card, shoe order, or database credentials are response fields.
 | GET `/api/history` | Session cookie; optional `page=1` | `{history,pageSize:20}` |
 | GET `/api/games/single` | Session cookie | `{game}` or `{game:null}` |
 | GET `/api/wallet` | Session cookie | `{chips}` |
+| GET `/api/leaderboard/me` | Session cookie | Current player's balance rank |
+| GET `/api/wheel` | Session cookie | Cost, prizes, probabilities and theoretical RTP |
+| POST `/api/wheel/spin` | `{requestId}` UUID v4 | Durable server-selected prize; same ID retries the same spin |
 | POST `/api/games/single` | `{botCount:0|1|2,wager,payoutMode}` | `{game}`; mode is `standard` or `experimental` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
 | POST `/api/games/single/advice` | roundId, revision | Model recommendation |

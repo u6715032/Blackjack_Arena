@@ -29,3 +29,18 @@ active game state is not recovered. This requires a single backend instance per
 database. A crash after a result is visible but before its save commits can refund
 the wager instead of settling that result. Never run startup recovery against a
 database used by another live server. MongoDB must be a replica set.
+
+## Lucky wheel
+
+Each spin costs 2 chips. Its six weighted outcomes are 0 chips (50%), 1 (20%),
+2 (15%), 5 (10%), 10 (4.9%), and 100 (0.1%). Expected return is
+`0×0.5 + 1×0.2 + 2×0.15 + 5×0.1 + 10×0.049 + 100×0.001 = 1.59`
+chips; theoretical RTP is `1.59 / 2 × 100 = 79.5%`. Outcomes are selected
+with Node's cryptographic random integer generator. Cost, prize, spin receipt,
+and balance changes commit together. A five-second server cooldown prevents
+overlapping spins; retrying the same UUID returns the original receipt.
+
+Balance rankings exclude legacy accounts until their wallet is initialized.
+Balances can be influenced by future transfers, loans, and multiple accounts;
+this leaderboard is not a measure of blackjack skill. Net holdings cannot yet
+be calculated because loans are not implemented.

@@ -22,8 +22,9 @@ set and unique ledger keys, and test code must never use the application's URI.
 3. Betting: implemented initial durable wagers, settlement, startup refunds,
    player-selected multiplayer wagers, observed RTP, payout configurations and
    simulation. Full process-restart and browser journeys remain to be verified.
-4. Wheel and leaderboard: transactional, cryptographically selected outcomes,
-   disclosed probabilities and indexed rankings.
+4. Wheel and leaderboard: initial implementation includes transactional,
+   cryptographically selected outcomes, disclosed probabilities, spin receipts,
+   animation and indexed balance rankings. Net-holdings ranking depends on loans.
 5. Friendships and private messages: authorization, presence and retention, while
    preserving room disconnect behavior.
 6. Transfers and loans: atomic receipts, explicit consent, overdue restrictions
@@ -32,7 +33,7 @@ set and unique ledger keys, and test code must never use the application's URI.
 8. End-to-end, concurrency, browser, recovery and security verification; complete
    API, schema, architecture and economic documentation.
 
-Phases 1–3 have an initial implementation. Phases 4–8 remain incomplete.
+Phases 1–4 have an initial implementation. Phases 5–8 remain incomplete.
 
 ## Wallet migration and rollback considerations
 

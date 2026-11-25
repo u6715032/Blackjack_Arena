@@ -1411,3 +1411,105 @@ td {
   min-width: 2.5rem;
   padding: 0.45rem;
 }
+.wheel-entry,
+.leaderboard {
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(224, 195, 119, 0.3);
+  border-radius: 0.65rem;
+  background: #122c23;
+}
+.wheel-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.wheel-entry p,
+.leaderboard p {
+  margin: 0.3rem 0;
+}
+.leaderboard ol {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+}
+.leaderboard li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.5rem;
+}
+.leaderboard li.top-rank {
+  color: #efd38b;
+}
+.leaderboard li.current-rank {
+  background: #315846;
+  border-radius: 0.3rem;
+}
+.modal-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+.wheel-modal {
+  position: relative;
+  background: #14281f;
+  border: 1px solid #b89a58;
+  border-radius: 1rem;
+  padding: 1.4rem;
+  max-height: 95vh;
+  overflow-y: auto;
+  width: min(100%, 32rem);
+  text-align: center;
+}
+.modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  font-size: 1.5rem;
+}
+.wheel-wrap {
+  position: relative;
+  width: min(55vw, 15rem);
+  margin: 1rem auto;
+}
+.wheel-disc {
+  aspect-ratio: 1;
+  width: 100%;
+  border: 0.45rem solid #d0b56d;
+  border-radius: 50%;
+  transition: transform 5s cubic-bezier(0.12, 0.7, 0.16, 1);
+  box-shadow: 0 0.4rem 2rem #0008;
+}
+.wheel-pointer {
+  position: absolute;
+  z-index: 1;
+  top: -0.4rem;
+  left: calc(50% - 0.5rem);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 1rem solid #f7e6a2;
+}
+.wheel-probabilities {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.8rem;
+}
+.wheel-probabilities i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.25rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wheel-disc {
+    transition-duration: 0.01s;
+  }
+}

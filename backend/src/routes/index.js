@@ -2,6 +2,8 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "express-rate-limit";
 import { publicUser } from "../middleware/auth.js";
+import { wheelConfiguration, spinWheel } from "../services/wheel.js";
+import { leaderboard, leaderboardPosition } from "../services/leaderboard.js";
 
 function badRequest(message) {
   const error = new Error(message);
@@ -46,6 +48,9 @@ export function createRoutes({ repository, auth, games, io }) {
     response
       .status(repository.isReady() ? 200 : 503)
       .json({ ready: repository.isReady() }),
+  );
+  router.get("/leaderboard", async (request, response) =>
+    response.json(await leaderboard(Number(request.query.page || 1))),
   );
   router.post("/auth/register", loginLimit, async (request, response) => {
     const values = readCredentials(request.body, true);
@@ -107,6 +112,21 @@ export function createRoutes({ repository, auth, games, io }) {
   router.get("/wallet", async (request, response) => {
     const user = await repository.findUserById(String(request.user._id));
     response.json({ chips: user.chips });
+  });
+  router.get("/leaderboard/me", async (request, response) =>
+    response.json({ player: await leaderboardPosition(request.user._id) }),
+  );
+  router.get("/wheel", (request, response) =>
+    response.json(wheelConfiguration()),
+  );
+  router.post("/wheel/spin", async (request, response) => {
+    const spin = await spinWheel(request.user._id, request.body?.requestId);
+    response.json({
+      requestId: spin.requestId,
+      prize: spin.prize,
+      prizeIndex: spin.prizeIndex,
+      cost: spin.cost,
+    });
   });
   router.get("/statistics", async (request, response) =>
     response.json({
