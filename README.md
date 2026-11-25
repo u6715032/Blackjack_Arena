@@ -222,9 +222,9 @@ not the internal reasoning of individual neurons.
 
 ```text
 frontend/src/
-  AuthContext.jsx       Shared logged-in user state
+  AuthContext.jsx       Shared session, balance and social notifications
   api.js                Browser-to-Express requests
-  components/           Cards, hands, controls, assistant, lobby, navbar
+  components/           Shared table, betting, wheel, chat, loans and rankings
   pages/                Home, accounts, single player, multiplayer, profile
 backend/src/
   app.js                Express/Socket.IO assembly, origin checks, errors
@@ -232,9 +232,9 @@ backend/src/
   config.js             Private server configuration
   game/engine.js        Card rules and round state transitions
   middleware/auth.js    JWT signing and verification
-  models/index.js       User, GameHistory, PlayerStatistics, RoundReceipt models
-  routes/index.js       REST handlers (controller role)
-  services/             Database, games/rooms, internal AI requests
+  models/index.js       Accounts, history, ledger, wagers, social and loan models
+  routes/               Authenticated REST handlers
+  services/             Database, games, economy, social and internal AI requests
   sockets.js            Authenticated real-time event handlers
 ai-service/
   model.py              Shared data, labels, normalization, networks, model utilities
@@ -249,7 +249,8 @@ docs/learning-guide/    Ten teaching chapters and defense preparation
 
 See [the learning guide](docs/learning-guide/01-project-overview.md),
 [team plan](docs/team-learning-plan.md), and
-[API reference](docs/api-reference.md). Route handlers act as simple controllers;
+[API reference](docs/api-reference.md), [V2 database architecture](docs/v2-database-architecture.md),
+and [V2 economics](docs/v2-economics.md). Route handlers act as simple controllers;
 there is no extra controller directory duplicating them.
 
 ## Operating limits

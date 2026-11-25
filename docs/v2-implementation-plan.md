@@ -17,28 +17,32 @@ set and unique ledger keys, and test code must never use the application's URI.
 ## Phases
 
 1. Audit, baseline tests and this plan: completed.
-2. Wallet, opening balances, daily reward and balance display: initial implementation;
+2. Wallet, opening balances, daily reward and balance display: implemented;
    MongoDB concurrency and migration tests execute against a dedicated replica set.
-3. Betting: implemented initial durable wagers, settlement, startup refunds,
+3. Betting: implemented durable wagers, settlement, startup refunds,
    player-selected multiplayer wagers, observed RTP, payout configurations and
-   simulation. Full process-restart and browser journeys remain to be verified.
-4. Wheel and leaderboard: initial implementation includes transactional,
+   simulation. A process crash/restart and browser wagers were tested.
+4. Wheel and leaderboard: implemented transactional,
    cryptographically selected outcomes, disclosed probabilities, spin receipts,
-   animation and indexed balance rankings. Net-holdings ranking depends on loans.
+   animation, indexed balance rankings and optional debt-adjusted rankings.
 5. Friendships and private messages: implemented request lifecycle, blocking,
    presence, authorized chat and retention with a separate social socket. Browser
-   and restart behavior still need end-to-end verification.
-6. Transfers and loans: initial implementation includes atomic receipts, explicit
+   flows, expiry and a scheduled cleanup after process restart were tested.
+6. Transfers and loans: implementation includes atomic receipts, explicit
    consent, partial repayment, overdue restrictions and durable obligations.
-   Complete browser-journey and process-restart verification in phase 8.
+   Browser and concurrent operations were tested, including repayment after a
+   server restart and chat cleanup.
 7. Responsive dashboard and shared game-table redesign: implemented, including
    dealt-card and chip animations and an optional sound toggle. The two-account
-   browser journey and desktop/mobile screenshots were exercised; final broad
-   browser and accessibility verification remains in phase 8.
-8. End-to-end, concurrency, browser, recovery and security verification; complete
-   API, schema, architecture and economic documentation.
+   browser journey and desktop/mobile screenshots were exercised; a formal
+   accessibility audit remains future work.
+8. End-to-end, concurrency, browser, recovery and security verification: local
+   checks executed and documented in [the verification report](verification-report.md).
+   Independent security review, load testing and multi-instance deployment remain
+   future work.
 
-Phases 1–7 have an initial implementation. Phase 8 remains incomplete.
+Phases 1–8 have local implementations and verification. They are not a claim of
+production readiness or multi-instance support.
 
 ## Wallet migration and rollback considerations
 
@@ -52,16 +56,14 @@ database before deployment and use a replica set. Rolling back application code
 does not remove new fields or ledger entries; never reset balances during rollback.
 
 The timestamp uses the application server's UTC clock, so hosts need synchronized
-clocks. Daily rewards do not accumulate. This initial ledger supports credits;
-now supports wager debits, settlement and refund credits, but transfers are not
-implemented. Balance updates are refreshed after game events, not across all tabs.
+clocks. Daily rewards do not accumulate. The ledger supports wager debits,
+settlement, refunds, transfers and loan operations.
+Authenticated sockets notify connected tabs after relevant balance changes.
 
 ## Baseline and current verification
 
 Baseline: `npm test` 38 passed; `npm run test:ai` 40 passed; `npm run build`
-passed. Wallet test: one dedicated MongoDB replica-set integration test passed,
-covering opening balances, legacy statistics preservation, eight concurrent
-claims, cooldown boundary, authenticated endpoints and ledger counts. The full
-database integration suite passed nine tests using a local disposable replica set
-and a live local AI service. Browser tests and V2 features beyond the wallet have
-not been verified.
+passed. The later V2 run passed 40 backend tests, 40 AI tests, 14 database
+integration tests and nine browser tests. See the verification report for the
+test environment, additional multiplayer wager check, measured simulations and
+limitations.

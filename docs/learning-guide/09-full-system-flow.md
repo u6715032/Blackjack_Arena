@@ -1,5 +1,12 @@
 # 09 — Full system flow
 
+V2 adds a transaction before the deal: the server validates and debits the wager,
+and persists a pending `Bet`. When the round completes, payout, bet status,
+history and statistics commit together. A server restart refunds pending bets
+because active hands remain in process memory. The separate social flow uses an
+authenticated notification socket and HTTP authorization for every private read
+or write. See [the V2 architecture](../v2-database-architecture.md).
+
 Follow one real single-player round across the files. The important boundary is
 who owns each decision and when a network/database operation can fail.
 
@@ -21,6 +28,8 @@ sequenceDiagram
     Express->>Atlas: Verify signed session/user version
     Express->>Engine: createRound / secure six-deck shuffle
     Engine-->>Express: Internal game
+    Express->>Atlas: Transaction: debit chips and persist wager
+    Atlas-->>Express: Commit
     Express-->>React: Permitted snapshot (hidden card masked)
     User->>React: Analyze my hand
     React->>Express: POST advice with round/revision
@@ -36,7 +45,7 @@ sequenceDiagram
         Express->>Engine: Process legal model move
     end
     Express->>Engine: Dealer S17, results after all turns
-    Express->>Atlas: Transaction: receipts, history, lifetime statistics, pruning
+    Express->>Atlas: Transaction: payout, bet, receipts, history, statistics, pruning
     Atlas-->>Express: Commit
     Express-->>React: Completed snapshot + saved status
 ```

@@ -23,13 +23,16 @@ export default function Friends() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const end = useRef(null);
+  const refreshVersion = useRef(0);
   const refresh = useCallback(async () => {
     if (!user) return;
+    const version = ++refreshVersion.current;
     try {
       const [data, loanData] = await Promise.all([
         api("/social"),
         api("/social/loans"),
       ]);
+      if (version !== refreshVersion.current) return;
       setSocial(data);
       setLoans(loanData.loans);
       if (
@@ -38,6 +41,7 @@ export default function Friends() {
         data.friends.some((friend) => friend.id === active.id)
       ) {
         const conversation = await api(`/social/messages/${active.id}`);
+        if (version !== refreshVersion.current) return;
         setMessages(conversation.messages);
         setSocial((current) => ({
           ...current,
@@ -53,24 +57,31 @@ export default function Friends() {
         setMessages([]);
       }
     } catch (e) {
-      setError(e.message);
+      if (version === refreshVersion.current) setError(e.message);
     }
   }, [user?.id, active?.id, minimized]);
   useEffect(() => {
     if (!user) return;
     refresh();
     const timer = setInterval(refresh, 15000);
-    socialSocket?.on("social:update", refresh);
-    socialSocket?.on("social:presence-change", refresh);
+    let notificationTimer;
+    const schedule = () => {
+      clearTimeout(notificationTimer);
+      notificationTimer = setTimeout(refresh, 150);
+    };
+    socialSocket?.on("social:update", schedule);
+    socialSocket?.on("social:presence-change", schedule);
     return () => {
+      refreshVersion.current += 1;
       clearInterval(timer);
-      socialSocket?.off("social:update", refresh);
-      socialSocket?.off("social:presence-change", refresh);
+      clearTimeout(notificationTimer);
+      socialSocket?.off("social:update", schedule);
+      socialSocket?.off("social:presence-change", schedule);
     };
   }, [refresh, socialSocket, user?.id]);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [messages.length, minimized]);
+  }, [messages.length, messages.at(-1)?.id, minimized]);
   async function action(id, operation) {
     setError("");
     setBusy(true);

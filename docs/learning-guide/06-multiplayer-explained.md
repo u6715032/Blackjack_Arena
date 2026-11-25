@@ -1,5 +1,12 @@
 # 06 — Multiplayer explained
 
+V2 adds a per-player virtual-chip wager. All connected players' wagers are
+debited together before the round is exposed; the host cannot set another
+player's amount. An unaffordable wager rejects the entire deal. Multiplayer
+always uses standard payout rules. A separate social socket does not count as a
+game connection, so leaving the multiplayer page retains the last-game-socket
+disconnect behavior. See [V2 economics](../v2-economics.md).
+
 HTTP is useful for independent requests such as login. Multiplayer also needs
 the server to tell everyone when someone else acts. Socket.IO provides that
 bidirectional event connection. It is a transport, not the game referee.

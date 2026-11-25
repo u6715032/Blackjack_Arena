@@ -20,7 +20,12 @@ hit-below-17 strategy and a ten-chip stake, and reports sample estimates. Sampli
 error, strategy and integer rounding affect the results. Compare standard and
 experimental estimates over the same simulated hands. A 10,000-round run during
 development measured 93.625% standard and 97.249% boosted RTP; these are estimates,
-not guarantees or exact probabilities.
+not guarantees or exact probabilities. The script also reports estimated house
+advantage and an illustrative per-player-day economy scenario: 100 ten-chip
+rounds, one daily reward and one wheel spin. Its expected net is
+`10 + 100 × 10 × (estimated RTP / 100 − 1) + 1.59 − 2`. Transfers and principal
+loans redistribute existing chips and are excluded. This simplified scenario is
+not a forecast of player behavior or long-term solvency.
 
 At deal, all humans' debits and pending bet records commit in one MongoDB
 transaction. Settlement, ledger credits, game history and statistics commit in
@@ -52,7 +57,9 @@ holdings, not lenders, borrowers, individual loans, or repayment histories.
 Accepted friends may transfer chips or propose a loan. A borrow request is
 accepted by the lender; a lending offer is accepted by the borrower. Pending
 requests may be declined by the recipient or cancelled by the initiator. The
-maximum combined pending and outstanding borrowing is 500 chips. Accepted loans
+maximum combined outstanding borrowing and borrower-initiated pending requests is
+500 chips. Unaccepted lending offers do not consume that limit, and each pair may
+have only one pending request in the same borrowing direction. Accepted loans
 have a 72-hour deadline, no interest, and support partial repayment. Once overdue,
 the borrower cannot send or lend chips or take another loan until all overdue
 debt is repaid. Repayment remains possible after removal or blocking; loan and

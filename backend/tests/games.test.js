@@ -11,6 +11,27 @@ const standPrediction = {
   explanation: "Test fixture.",
 };
 
+test("a player cannot enter multiplayer while a single-player wager is being placed", async () => {
+  const repository = testRepository();
+  let release;
+  repository.placeBets = () =>
+    new Promise((resolve) => {
+      release = resolve;
+    });
+  const service = createGameService({
+    repository,
+    predict: async () => standPrediction,
+    shoeFactory: () => testShoe("10", "10", "8", "7"),
+  });
+  const room = service.createRoom({ _id: "host", username: "Host" });
+  const pending = service.startSingle(human, 0, 1);
+  assert.throws(() => service.createRoom(human), /updating/);
+  assert.throws(() => service.joinRoom(human, room.code), /updating/);
+  release();
+  const game = await pending;
+  assert.equal(game.status, "playing");
+});
+
 test("bots consume their own features; assistant never acts; results save once", async () => {
   const seen = [];
   const repository = testRepository();

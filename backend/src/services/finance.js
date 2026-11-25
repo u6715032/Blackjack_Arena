@@ -38,10 +38,9 @@ async function allowBorrowing(userId, now, session) {
     fail("Repay your overdue loan before borrowing more chips.", 409);
 }
 async function borrowedTotal(userId, session, includePending = false) {
-  const statuses = includePending
-    ? ["pending", "accepted", "overdue"]
-    : ["accepted", "overdue"];
-  const loans = await Loan.find({ borrower: userId, status: { $in: statuses } })
+  const states = [{ status: { $in: ["accepted", "overdue"] } }];
+  if (includePending) states.push({ status: "pending", initiatedBy: userId });
+  const loans = await Loan.find({ borrower: userId, $or: states })
     .select("outstanding")
     .session(session)
     .lean();
@@ -135,7 +134,17 @@ export async function createLoan(
     }
     await requireFriends(first, second, session);
     await allowBorrowing(borrower, now, session);
-    if ((await borrowedTotal(borrower, session, true)) + amount > LOAN_LIMIT)
+    if (
+      await Loan.exists({ borrower, lender, status: "pending" }).session(
+        session,
+      )
+    )
+      fail("A loan request between these players is already pending.", 409);
+    if (
+      (await borrowedTotal(borrower, session, direction === "borrow")) +
+        amount >
+      LOAN_LIMIT
+    )
       fail(
         `Borrowing limit is ${LOAN_LIMIT} chips including pending requests.`,
         409,

@@ -31,13 +31,16 @@ export function createAuth(config, repository) {
       maxAge: 8 * 60 * 60 * 1000,
     });
   }
+  function verifyClaims(token) {
+    return jwt.verify(token || "", config.jwtSecret, {
+      algorithms: ["HS256"],
+      issuer: "blackjack-arena",
+      audience: "blackjack-web",
+    });
+  }
   async function verifyToken(token) {
     try {
-      const claims = jwt.verify(token || "", config.jwtSecret, {
-        algorithms: ["HS256"],
-        issuer: "blackjack-arena",
-        audience: "blackjack-web",
-      });
+      const claims = verifyClaims(token);
       const user = await repository.findUserById(claims.sub);
       if (!user || user.tokenVersion !== claims.version)
         throw new Error("Session revoked.");
@@ -51,6 +54,14 @@ export function createAuth(config, repository) {
   return {
     signIn,
     verifyToken,
+    rateLimitSubject(token) {
+      try {
+        const claims = verifyClaims(token);
+        return typeof claims.sub === "string" ? claims.sub : null;
+      } catch {
+        return null;
+      }
+    },
     clear: (response) => response.clearCookie(cookieName, cookieOptions),
     async requireUser(request, response, next) {
       try {

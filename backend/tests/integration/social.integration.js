@@ -111,6 +111,14 @@ test("friendship authorization, live presence, retention, weekly cleanup and blo
     );
     assert.equal(await cleanupMessages(), 20);
     assert.equal((await readConversation(aId, bId)).length, 0);
+    await sendMessage(aId, bId, "expired message");
+    await Message.updateOne(
+      { sender: aId },
+      { $set: { expiresAt: new Date(0) } },
+    );
+    assert.equal((await readConversation(aId, bId)).length, 0);
+    await cleanupMessages();
+    assert.equal(await Message.countDocuments({ sender: aId }), 0);
     const ttl = (await Message.collection.indexes()).find(
       (index) => index.key.expiresAt === 1,
     );

@@ -86,8 +86,9 @@ socket, and room mutations use the same authoritative engine as single player.
 An additional socket with handshake `auth.scope` set to `social` joins the user's
 private notification room and does not count as a multiplayer connection. It
 receives `social:update` and `social:presence-change` hints, without private
-message contents; clients fetch authorized state over HTTP. Social activity is
-limited to 100 requests per minute per IP in addition to the general API limit.
+message contents; clients fetch authorized state over HTTP. Social writes are
+limited to 60 actions per minute per authenticated account in addition to the
+general API limit, which keys signed sessions by account and anonymous traffic by IP.
 
 | Event | Payload | Acknowledgement data |
 | --- | --- | --- |

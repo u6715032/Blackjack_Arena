@@ -145,6 +145,11 @@ test("transfers and loans preserve chips, enforce consent and overdue restrictio
       createLoan(b, c, "borrow", 501, randomUUID(), overdue),
       /whole number/,
     );
+    await friendshipAction(a, b, "unblock");
+    await friendshipAction(a, b, "request");
+    await friendshipAction(b, a, "accept");
+    await createLoan(c, b, "lend", 500, randomUUID(), overdue);
+    await createLoan(b, a, "borrow", 5, randomUUID(), overdue);
     application = createApplication({
       config: testConfig,
       repository: database,

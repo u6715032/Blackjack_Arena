@@ -92,6 +92,8 @@ export function createRoutes({
       ? await repository.accessWallet(user._id)
       : { user };
     auth.signIn(response, wallet.user);
+    if (wallet.rewardGranted)
+      io.to(`user:${wallet.user._id}`).emit("wallet:update");
     response.json({
       user: publicUser(wallet.user),
       rewardGranted: wallet.rewardGranted,
@@ -110,6 +112,8 @@ export function createRoutes({
     const wallet = repository.accessWallet
       ? await repository.accessWallet(request.user._id)
       : { user: request.user };
+    if (wallet.rewardGranted)
+      io.to(`user:${wallet.user._id}`).emit("wallet:update");
     response.json({
       user: publicUser(wallet.user),
       rewardGranted: wallet.rewardGranted,
@@ -139,6 +143,7 @@ export function createRoutes({
   );
   router.post("/wheel/spin", async (request, response) => {
     const spin = await spinWheel(request.user._id, request.body?.requestId);
+    io.to(`user:${request.user._id}`).emit("wallet:update");
     response.json({
       requestId: spin.requestId,
       prize: spin.prize,

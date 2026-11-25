@@ -48,7 +48,10 @@ not natural. `determineRoundResult` applies these checks in this order:
 5. Equal qualifying totals push; otherwise the player loses.
 
 The order prevents the common bug of treating all totals of 21 as equivalent.
-There are no wagers or payout multipliers.
+The separate betting service applies the stored payout rule after the engine
+decides the result; it does not alter the shoe or determine the winner. Standard
+wins return 2× stake and naturals 2.5×, rounded down to integer chips. Pushes
+return the stake. See [V2 economics](../v2-economics.md).
 
 ## Turn state
 

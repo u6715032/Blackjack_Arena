@@ -6,6 +6,7 @@ import {
   isNaturalBlackjack,
 } from "../src/game/engine.js";
 import { payout } from "../src/services/betting.js";
+import { wheelConfiguration } from "../src/services/wheel.js";
 
 const trials = Number(process.argv[2] || 10000);
 if (!Number.isSafeInteger(trials) || trials < 1 || trials > 1000000)
@@ -51,6 +52,11 @@ for (let i = 0; i < trials; i++) {
     "experimental-boost-v1",
   );
 }
+const standardRtp = standard / (stake * trials);
+const boostRtp = boost / (stake * trials);
+const wheel = wheelConfiguration();
+const dailyEconomy = (rtp) =>
+  10 + 100 * stake * (rtp - 1) + wheel.expectedPayout - wheel.cost;
 console.log(
   JSON.stringify(
     {
@@ -59,8 +65,16 @@ console.log(
       strategy: "hit below 17; stand otherwise",
       winPercentage: (wins / trials) * 100,
       pushPercentage: (pushes / trials) * 100,
-      standardEstimatedRtp: (standard / (stake * trials)) * 100,
-      experimentalEstimatedRtp: (boost / (stake * trials)) * 100,
+      standardEstimatedRtp: standardRtp * 100,
+      experimentalEstimatedRtp: boostRtp * 100,
+      standardEstimatedHouseAdvantage: (1 - standardRtp) * 100,
+      experimentalEstimatedHouseAdvantage: (1 - boostRtp) * 100,
+      economyScenario: {
+        description:
+          "Per player-day: 100 rounds, one daily reward and one wheel spin; ignores transfers and loans, which redistribute chips.",
+        standardEstimatedNetChips: dailyEconomy(standardRtp),
+        experimentalEstimatedNetChips: dailyEconomy(boostRtp),
+      },
       note: "Monte Carlo estimates; random sampling error applies, and results depend on player strategy and wager rounding.",
     },
     null,

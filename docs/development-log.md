@@ -1,5 +1,14 @@
 # Development checkpoints
 
+## Blackjack Arena V2 — 25 November 2026
+
+Built milestones on `feature/blackjack-arena-v2`: wallet and daily rewards;
+durable blackjack wagers and RTP; weighted lucky wheel and rankings; friendship
+and retained private chat; chip transfers and loans; and a responsive dashboard
+and shared table redesign. Existing model weights were not retrained. Integration
+tests use dedicated local replica-set databases, including an actual kill-and-
+restart refund test. The verification report records executed tests and limits.
+
 The original repository had two Python scripts, original `.keras` / `.pt` artifacts,
 the proposal, and private backend configuration. Frontend/backend implementation
 directories were empty. Historical implementation checkpoints remain in Git.

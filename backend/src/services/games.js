@@ -25,6 +25,14 @@ export function createGameService({ repository, predict, shoeFactory }) {
   const busy = new Set();
   const connectionStatus = new Map();
   let notify = () => {};
+  let notifyWallet = () => {};
+  function sendWalletUpdate(userId) {
+    try {
+      notifyWallet(userId);
+    } catch {
+      /* Notification must not affect committed money. */
+    }
+  }
 
   function clearTurnTimer(room) {
     if (room.turn) clearTimeout(room.turn.timer);
@@ -129,6 +137,8 @@ export function createGameService({ repository, predict, shoeFactory }) {
       }
       game.saved = true;
       game.saveError = null;
+      for (const player of game.players.filter((entry) => !entry.isBot))
+        sendWalletUpdate(player.id);
     } catch {
       game.saveError =
         "Result not saved yet. Retry saving before starting another round.";
@@ -211,6 +221,9 @@ export function createGameService({ repository, predict, shoeFactory }) {
     setNotifier(callback) {
       notify = callback;
     },
+    setWalletNotifier(callback) {
+      notifyWallet = callback;
+    },
     singleView: (userId) => publicGame(singleGames.get(userId)),
     async startSingle(user, botCount, wager = 1, payoutMode = "standard") {
       const userId = String(user._id);
@@ -233,6 +246,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
         const game = createRound(players, "single", shoeFactory?.());
         await repository.placeBets(game);
         singleGames.set(userId, game);
+        sendWalletUpdate(userId);
         await runBotsAndSave(game);
         return publicGame(game);
       });
@@ -261,6 +275,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
     },
     createRoom(user) {
       const userId = String(user._id);
+      if (busy.has(userId)) fail("Your table is updating. Try again.", 409);
       if (userRooms.has(userId))
         fail("You already have a room. Reopen it from Multiplayer.", 409);
       ensurePreviousFinished(singleGames.get(userId));
@@ -284,6 +299,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
     },
     joinRoom(user, code) {
       const userId = String(user._id);
+      if (busy.has(userId)) fail("Your table is updating. Try again.", 409);
       if (typeof code !== "string" || !/^[A-Z2-9]{6}$/.test(code))
         fail("Enter a valid six-character room code.");
       const room = rooms.get(code);
@@ -332,6 +348,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
         const game = createRound(connected, "multi", shoeFactory?.());
         await repository.placeBets(game);
         room.game = game;
+        for (const player of connected) sendWalletUpdate(player.id);
         await finishRoomUpdate(room);
         return roomView(room);
       });

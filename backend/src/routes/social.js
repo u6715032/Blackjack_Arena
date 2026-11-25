@@ -23,10 +23,12 @@ export function createSocialRoutes(io, online) {
   router.use(
     rateLimit({
       windowMs: 60000,
-      limit: 100,
+      limit: 60,
+      skip: (request) => request.method === "GET",
+      keyGenerator: (request) => String(request.user._id),
       standardHeaders: "draft-8",
       legacyHeaders: false,
-      message: { error: "Too many social requests. Please wait." },
+      message: { error: "Too many social actions. Please wait." },
     }),
   );
   const notify = (userId, otherId) => {

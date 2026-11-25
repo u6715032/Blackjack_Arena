@@ -50,6 +50,9 @@ test("two players use friends, chat, chips, loans, wheel and blackjack", async (
       }),
     ).toBeVisible();
     await expect(first.locator(".leaderboard li").first()).toBeVisible();
+    const mirror = await contexts[0].newPage();
+    await mirror.goto("http://localhost:5173/");
+    await expect(mirror.getByLabel("110 virtual chips")).toBeVisible();
     for (const viewport of [
       { width: 1366, height: 768 },
       { width: 1920, height: 1080 },
@@ -112,6 +115,7 @@ test("two players use friends, chat, chips, loans, wheel and blackjack", async (
           ).chips,
       )
       .toBe(113);
+    await expect(mirror.getByLabel("107 virtual chips")).toBeVisible();
     await first.getByLabel("Chip amount").fill("10");
     await first.getByRole("button", { name: "Request loan" }).click();
     await second.getByText("Send or borrow chips").click();

@@ -134,7 +134,19 @@ test("browser: two independent accounts join, play synchronized turns and replay
     await guest.getByLabel("Room code", { exact: true }).fill(code);
     await guest.getByRole("button", { name: "Join room →" }).click();
     await expect(host.locator(".player-list li")).toHaveCount(2);
+    await host.getByLabel("Wager (chips)").fill("5");
+    await host.getByRole("button", { name: "Set wager" }).click();
+    await guest.getByLabel("Wager (chips)").fill("7");
+    await guest.getByRole("button", { name: "Set wager" }).click();
+    await expect(host.locator(".player-list li").first()).toContainText(
+      "5 chips",
+    );
+    await expect(host.locator(".player-list li").last()).toContainText(
+      "7 chips",
+    );
     await host.getByRole("button", { name: "Start round →" }).click();
+    await expect(host.locator(".player-hand").first()).toContainText("5 chips");
+    await expect(guest.locator(".player-hand").last()).toContainText("7 chips");
     for (let turn = 0; turn < 4; turn += 1) {
       if (await host.locator(".round-result").count()) break;
       for (const page of [host, guest]) {

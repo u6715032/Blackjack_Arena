@@ -19,7 +19,9 @@ The current proposal DOCX was preserved; it was not silently rewritten.
    start, and demonstrate synchronized turns and rejected out-of-turn actions.
    Let a turn reach 30 seconds to show normal automatic STAND and the next timer.
 7. Disconnect one participant, explain the automatic stand, and show host transfer.
-8. Show tests and measured model results. If a service is unavailable, show its
+8. Demonstrate a virtual-chip wager, daily reward, wheel probabilities, a friend
+   request, private chat and an interest-free loan with partial repayment.
+9. Show tests and measured model results. If a service is unavailable, show its
    real error; do not substitute a prerecorded result and call it live.
 
 Keep a short screen recording as a clearly labeled backup for network outages,
@@ -34,8 +36,8 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
 
 2. **Explain the architecture in one minute.**
    React displays permitted state. Express authenticates people, owns games,
-   and uses Socket.IO for room updates. MongoDB stores accounts and finished
-   outcomes. FastAPI loads our PyTorch checkpoint for four-feature inference.
+   and uses Socket.IO for room and social updates. MongoDB stores accounts,
+   financial transactions, social state and finished outcomes. FastAPI loads our PyTorch checkpoint for four-feature inference.
    TensorFlow is used offline for training.
 
 3. **Why does the backend own cards?**
@@ -210,8 +212,19 @@ and keep test output/evaluation JSON available locally. Never project `.env`.
 
 36. **What remains outside the delivered scope?**
     Public deployment, multi-server state coordination, durable active rounds,
-    password reset, and email verification. Required gameplay and
-    account flows were verified locally; those additional features are not claimed.
+    password reset, and email verification. Pending wagers are refunded at startup
+    instead of restoring the hand. See the verification report for actual results.
+
+37. **What is the difference between RTP and win percentage?**
+    Observed RTP is settled chips returned divided by settled chips wagered;
+    win percentage counts winning rounds. Theoretical RTP is an expectation
+    under specified rules and strategy. A simulation is an estimate, not an
+    exact result or a promise to an individual player.
+
+38. **What prevents duplicate chip transfers and loan repayments?**
+    Unique request receipts and ledger keys are checked in a MongoDB transaction.
+    Both balances and the financial record commit together; overlapping operations
+    serialize on user documents. A retry with changed terms is rejected.
 
 ## How to present ownership and limitations honestly
 

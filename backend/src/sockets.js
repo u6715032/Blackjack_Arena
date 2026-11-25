@@ -29,6 +29,9 @@ export function configureSockets(
     }
   });
   games.setNotifier((code, room) => io.to(code).emit("room:update", room));
+  games.setWalletNotifier((userId) =>
+    io.to(`user:${userId}`).emit("wallet:update"),
+  );
   io.on("connection", (socket) => {
     const userId = String(socket.data.user._id);
     if (socket.handshake.auth?.scope === "social") {
