@@ -18,7 +18,10 @@ export default function Home() {
         Math.ceil((new Date(reward.nextRewardAt).getTime() - now) / 1000),
       )
     : 0;
-  const countdown = `${Math.floor(remaining / 3600)}h ${Math.floor((remaining % 3600) / 60)}m ${remaining % 60}s`;
+  const hours = String(Math.floor(remaining / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
+  const seconds = String(remaining % 60).padStart(2, "0");
+  const countdown = `${hours}h ${minutes}m ${seconds}s`;
   return (
     <div className="home-page dashboard">
       <div className="dashboard-main">

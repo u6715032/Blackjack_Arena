@@ -1693,7 +1693,10 @@ td {
   min-width: 0;
 }
 .dashboard-rewards .daily-reward {
-  align-content: center;
+  align-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 .dashboard-rewards .wheel-entry {
   flex-wrap: wrap;
