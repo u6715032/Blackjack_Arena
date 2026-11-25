@@ -8,12 +8,12 @@ import {
 } from "../models/index.js";
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
-function fail(message, status = 400) {
+export function fail(message, status = 400) {
   const error = new Error(message);
   error.status = status;
   throw error;
 }
-function pair(userId, otherId) {
+export function pair(userId, otherId) {
   if (
     !mongoose.isValidObjectId(otherId) ||
     !mongoose.isValidObjectId(userId) ||
@@ -23,7 +23,7 @@ function pair(userId, otherId) {
   const [first, second] = [String(userId), String(otherId)].sort();
   return { first, second, conversation: `${first}:${second}` };
 }
-async function lockPair(first, second, session) {
+export async function lockPair(first, second, session) {
   for (const id of [first, second]) {
     const result = await User.updateOne(
       { _id: id },
@@ -44,7 +44,7 @@ async function ensureUnblocked(first, second, session) {
   )
     fail("This interaction is unavailable.", 403);
 }
-async function requireFriends(first, second, session) {
+export async function requireFriends(first, second, session) {
   await ensureUnblocked(first, second, session);
   if (
     !(await Friendship.exists({ first, second, status: "accepted" }).session(
@@ -207,14 +207,12 @@ export async function readConversation(userId, otherId) {
       .limit(20)
       .session(session)
       .lean();
-    return messages
-      .reverse()
-      .map(({ _id, sender, text, createdAt }) => ({
-        id: String(_id),
-        sender: String(sender),
-        text,
-        createdAt,
-      }));
+    return messages.reverse().map(({ _id, sender, text, createdAt }) => ({
+      id: String(_id),
+      sender: String(sender),
+      text,
+      createdAt,
+    }));
   });
 }
 export async function sendMessage(userId, otherId, text) {

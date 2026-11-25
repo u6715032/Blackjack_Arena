@@ -28,13 +28,14 @@ set and unique ledger keys, and test code must never use the application's URI.
 5. Friendships and private messages: implemented request lifecycle, blocking,
    presence, authorized chat and retention with a separate social socket. Browser
    and restart behavior still need end-to-end verification.
-6. Transfers and loans: atomic receipts, explicit consent, overdue restrictions
-   and durable obligations independent of chat retention.
+6. Transfers and loans: initial implementation includes atomic receipts, explicit
+   consent, partial repayment, overdue restrictions and durable obligations.
+   Complete browser-journey and process-restart verification in phase 8.
 7. Responsive homepage and shared game-table redesign.
 8. End-to-end, concurrency, browser, recovery and security verification; complete
    API, schema, architecture and economic documentation.
 
-Phases 1–5 have an initial implementation. Phases 6–8 remain incomplete.
+Phases 1–6 have an initial implementation. Phases 7–8 remain incomplete.
 
 ## Wallet migration and rollback considerations
 

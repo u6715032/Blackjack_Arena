@@ -7,11 +7,12 @@ export default function Leaderboard() {
   const [data, setData] = useState(null);
   const [position, setPosition] = useState(null);
   const [error, setError] = useState("");
+  const [sort, setSort] = useState("balance");
   const refresh = useCallback(async () => {
     try {
       const [rankings, own] = await Promise.all([
-        api("/leaderboard"),
-        user ? api("/leaderboard/me") : Promise.resolve(null),
+        api(`/leaderboard?sort=${sort}`),
+        user ? api(`/leaderboard/me?sort=${sort}`) : Promise.resolve(null),
       ]);
       setData(rankings);
       setPosition(own?.player || null);
@@ -19,7 +20,7 @@ export default function Leaderboard() {
     } catch (e) {
       setError(e.message);
     }
-  }, [user?.id]);
+  }, [user?.id, sort]);
   useEffect(() => {
     refresh();
     const interval = setInterval(refresh, 15000);
@@ -33,6 +34,13 @@ export default function Leaderboard() {
     <section className="leaderboard">
       <h2>Chip leaderboard</h2>
       <p>Current virtual chip balances</p>
+      <label>
+        Rank by{" "}
+        <select value={sort} onChange={(event) => setSort(event.target.value)}>
+          <option value="balance">Chip balance</option>
+          <option value="net">Balance after debt</option>
+        </select>
+      </label>
       {error && <p role="alert">{error}</p>}
       <ol>
         {data?.players.map((player) => (
@@ -44,7 +52,10 @@ export default function Leaderboard() {
               #{player.rank} {player.username}
               {player.id === user?.id ? " (you)" : ""}
             </span>
-            <b>{player.chips.toLocaleString()}</b>
+            <b>
+              {player.chips.toLocaleString()}{" "}
+              <small>· net {player.netChips.toLocaleString()}</small>
+            </b>
           </li>
         ))}
       </ol>

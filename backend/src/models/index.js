@@ -131,6 +131,72 @@ const maintenanceSchema = new Schema({
   version: { type: Number, default: 0 },
 });
 
+const loanSchema = new Schema(
+  {
+    lender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    borrower: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    initiatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    requestId: { type: String, required: true },
+    principal: {
+      type: Number,
+      required: true,
+      min: 1,
+      validate: Number.isSafeInteger,
+    },
+    outstanding: {
+      type: Number,
+      required: true,
+      min: 0,
+      validate: Number.isSafeInteger,
+    },
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "accepted",
+        "declined",
+        "cancelled",
+        "repaid",
+        "overdue",
+      ],
+      required: true,
+    },
+    acceptedAt: Date,
+    deadline: Date,
+    repayments: [
+      {
+        amount: { type: Number, required: true },
+        at: { type: Date, required: true },
+        requestId: { type: String, required: true },
+      },
+    ],
+  },
+  { timestamps: true },
+);
+loanSchema.index({ initiatedBy: 1, requestId: 1 }, { unique: true });
+loanSchema.index({ borrower: 1, status: 1, deadline: 1 });
+loanSchema.index({ lender: 1, status: 1 });
+const transferSchema = new Schema(
+  {
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    recipient: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    requestId: { type: String, required: true },
+    amount: { type: Number, required: true, min: 1 },
+  },
+  { timestamps: true },
+);
+transferSchema.index({ sender: 1, requestId: 1 }, { unique: true });
+const repaymentSchema = new Schema(
+  {
+    borrower: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    loan: { type: Schema.Types.ObjectId, ref: "Loan", required: true },
+    requestId: { type: String, required: true },
+    amount: { type: Number, required: true, min: 1 },
+  },
+  { timestamps: true },
+);
+repaymentSchema.index({ borrower: 1, requestId: 1 }, { unique: true });
+
 const historySchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
@@ -185,6 +251,9 @@ export const Friendship = mongoose.model("Friendship", friendshipSchema);
 export const Block = mongoose.model("Block", blockSchema);
 export const Message = mongoose.model("Message", messageSchema);
 export const Maintenance = mongoose.model("Maintenance", maintenanceSchema);
+export const Loan = mongoose.model("Loan", loanSchema);
+export const ChipTransfer = mongoose.model("ChipTransfer", transferSchema);
+export const LoanRepayment = mongoose.model("LoanRepayment", repaymentSchema);
 export const GameHistory = mongoose.model("GameHistory", historySchema);
 export const RoundReceipt = mongoose.model("RoundReceipt", receiptSchema);
 export const PlayerStatistics = mongoose.model(

@@ -15,6 +15,10 @@ export function AuthProvider({ children }) {
       return;
     }
     const socket = io({ withCredentials: true, auth: { scope: "social" } });
+    socket.on("wallet:update", () => {
+      refreshBalance().catch(() => {});
+      window.dispatchEvent(new Event("chips:changed"));
+    });
     setSocialSocket(socket);
     return () => socket.disconnect();
   }, [user?.id]);

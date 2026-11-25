@@ -41,6 +41,26 @@ and balance changes commit together. A five-second server cooldown prevents
 overlapping spins; retrying the same UUID returns the original receipt.
 
 Balance rankings exclude legacy accounts until their wallet is initialized.
-Balances can be influenced by future transfers, loans, and multiple accounts;
-this leaderboard is not a measure of blackjack skill. Net holdings cannot yet
-be calculated because loans are not implemented.
+Net holdings are the current balance minus accepted outstanding borrowing; they
+can be negative. Pending and closed loans are excluded. Balances and rankings can
+be influenced by transfers, loans, and multiple accounts; this leaderboard is
+not a measure of blackjack skill. Public responses reveal only aggregate net
+holdings, not lenders, borrowers, individual loans, or repayment histories.
+
+## Transfers and loans
+
+Accepted friends may transfer chips or propose a loan. A borrow request is
+accepted by the lender; a lending offer is accepted by the borrower. Pending
+requests may be declined by the recipient or cancelled by the initiator. The
+maximum combined pending and outstanding borrowing is 500 chips. Accepted loans
+have a 72-hour deadline, no interest, and support partial repayment. Once overdue,
+the borrower cannot send or lend chips or take another loan until all overdue
+debt is repaid. Repayment remains possible after removal or blocking; loan and
+ledger records are independent of chat retention. The server checks deadlines
+on each restricted operation and marks overdue loans on startup and every minute.
+
+The client supplies a unique UUID for each transfer, loan proposal and repayment;
+repeating the same request with unchanged terms returns its original receipt.
+Both wallet changes, the ledger entries and the financial record commit together.
+Loan acceptance uses the persistent loan ID as its transaction key. Synchronized
+server clocks are required for cooldowns and deadlines.

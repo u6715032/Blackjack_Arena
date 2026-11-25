@@ -9,7 +9,7 @@ token, hidden card, shoe order, or database credentials are response fields.
 | Method and path | Input | Result |
 | --- | --- | --- |
 | GET `/api/health` | None | `{ready}` for database connection |
-| GET `/api/leaderboard?page=1` | Public; 20 results per page | Rank, user ID, username and chips only |
+| GET `/api/leaderboard?page=1&sort=balance` | Public; 20 results per page; sort is `balance` or `net` | Rank, user ID, username, chips and net chips |
 | POST `/api/auth/register` | username, email, password | `{user}` and session cookie |
 | POST `/api/auth/login` | email, password | `{user,rewardGranted,nextRewardAt}` and session cookie |
 | POST `/api/auth/logout` | Session cookie | Revoke all user's sessions, clear cookie |
@@ -27,6 +27,10 @@ token, hidden card, shoe order, or database credentials are response fields.
 | POST `/api/social/friends/:id/:action` | `request`, `accept`, `decline`, `cancel`, `remove`, `block`, or `unblock` | Authorized relationship change |
 | GET `/api/social/messages/:id` | Accepted, unblocked friend | Latest 20 non-expired messages, marked read |
 | POST `/api/social/messages/:id` | `{text}` up to 1000 characters | Send a private message |
+| GET `/api/social/loans` | Session cookie | Own loan records, limit and duration |
+| POST `/api/social/transfers` | `{recipient,amount,requestId}` | Transfer receipt; UUID makes retries idempotent |
+| POST `/api/social/loans` | `{otherId,direction,amount,requestId}`; direction `borrow` or `lend` | Loan proposal ID |
+| POST `/api/social/loans/:id/:action` | `accept`, `decline`, `cancel`, or `repay`; repayment requires `{amount,requestId}` | Loan action result |
 | POST `/api/games/single` | `{botCount:0|1|2,wager,payoutMode}` | `{game}`; mode is `standard` or `experimental` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
 | POST `/api/games/single/advice` | roundId, revision | Model recommendation |

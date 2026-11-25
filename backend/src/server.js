@@ -4,12 +4,14 @@ import { connectDatabase, database } from "./services/database.js";
 import { createApplication } from "./app.js";
 import { refundPendingBets } from "./services/betting.js";
 import { cleanupMessages } from "./services/social.js";
+import { markOverdue } from "./services/finance.js";
 
 try {
   const config = readConfig();
   await connectDatabase(config.mongoUri);
   await refundPendingBets();
   await cleanupMessages();
+  await markOverdue();
   console.log("MongoDB connected; required indexes ready.");
   const { server, io } = createApplication({ config, repository: database });
   let cleaningChat = false;
@@ -17,7 +19,11 @@ try {
     if (cleaningChat) return;
     cleaningChat = true;
     try {
-      if (await cleanupMessages()) io.emit("social:update");
+      const [removed, overdue] = await Promise.all([
+        cleanupMessages(),
+        markOverdue(),
+      ]);
+      if (removed || overdue) io.emit("social:update");
     } catch {
       console.error("Chat cleanup failed; it will be retried.");
     } finally {

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
+import Loans from "./Loans";
 
 export default function Friends() {
-  const { user, socialSocket } = useAuth();
+  const { user, socialSocket, refreshBalance } = useAuth();
+  const [loans, setLoans] = useState([]);
+  const [chipAmount, setChipAmount] = useState("1");
+  const pendingKeys = useRef(new Map());
   const [social, setSocial] = useState({
     friends: [],
     incoming: [],
@@ -22,19 +26,36 @@ export default function Friends() {
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await api("/social");
+      const [data, loanData] = await Promise.all([
+        api("/social"),
+        api("/social/loans"),
+      ]);
       setSocial(data);
-      if (active && data.friends.some((friend) => friend.id === active.id)) {
+      setLoans(loanData.loans);
+      if (
+        active &&
+        !minimized &&
+        data.friends.some((friend) => friend.id === active.id)
+      ) {
         const conversation = await api(`/social/messages/${active.id}`);
         setMessages(conversation.messages);
-      } else if (active) {
+        setSocial((current) => ({
+          ...current,
+          friends: current.friends.map((friend) =>
+            friend.id === active.id ? { ...friend, unread: 0 } : friend,
+          ),
+        }));
+      } else if (
+        active &&
+        !data.friends.some((friend) => friend.id === active.id)
+      ) {
         setActive(null);
         setMessages([]);
       }
     } catch (e) {
       setError(e.message);
     }
-  }, [user?.id, active?.id]);
+  }, [user?.id, active?.id, minimized]);
   useEffect(() => {
     if (!user) return;
     refresh();
@@ -85,6 +106,53 @@ export default function Friends() {
       });
       setText("");
       await refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function keyFor(signature) {
+    if (!pendingKeys.current.has(signature))
+      pendingKeys.current.set(signature, crypto.randomUUID());
+    return pendingKeys.current.get(signature);
+  }
+  async function moneyOperation(operation) {
+    if (!active || busy) return;
+    const amount = Number(chipAmount);
+    const signature = `${operation}:${active.id}:${amount}`;
+    const requestId = keyFor(signature);
+    const isTransfer = operation === "transfer";
+    const body = isTransfer
+      ? { recipient: active.id, amount, requestId }
+      : { otherId: active.id, direction: operation, amount, requestId };
+    setBusy(true);
+    setError("");
+    try {
+      await api(isTransfer ? "/social/transfers" : "/social/loans", {
+        method: "POST",
+        body,
+      });
+      pendingKeys.current.delete(signature);
+      await refresh();
+      refreshBalance().catch(() => {});
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function loanAction(id, operation, amount) {
+    const signature = `loan:${id}:${operation}:${amount}`;
+    const body =
+      operation === "repay" ? { amount, requestId: keyFor(signature) } : {};
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/social/loans/${id}/${operation}`, { method: "POST", body });
+      pendingKeys.current.delete(signature);
+      await refresh();
+      refreshBalance().catch(() => {});
     } catch (e) {
       setError(e.message);
     } finally {
@@ -207,6 +275,7 @@ export default function Friends() {
           ))}
         </details>
       )}
+      <Loans loans={loans} userId={user.id} busy={busy} onAction={loanAction} />
       {active && (
         <aside
           className="chat-widget"
@@ -236,6 +305,11 @@ export default function Friends() {
           </div>
           {!minimized && (
             <>
+              {error && (
+                <p role="alert" className="notice error">
+                  {error}
+                </p>
+              )}
               <div className="chat-history">
                 {messages.map((message) => (
                   <div
@@ -258,6 +332,56 @@ export default function Friends() {
                 />
                 <button disabled={busy || !text.trim()}>Send</button>
               </form>
+              <details className="chat-finance">
+                <summary>Send or borrow chips</summary>
+                <p>
+                  Loans have no interest and are due 72 hours after acceptance.
+                  Both players must accept the terms.
+                </p>
+                <div className="chip-actions">
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000000"
+                    value={chipAmount}
+                    onChange={(event) => setChipAmount(event.target.value)}
+                    aria-label="Chip amount"
+                  />
+                  <button
+                    disabled={busy}
+                    onClick={() => moneyOperation("transfer")}
+                  >
+                    Send
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => moneyOperation("borrow")}
+                  >
+                    Request loan
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => moneyOperation("lend")}
+                  >
+                    Offer loan
+                  </button>
+                </div>
+                <Loans
+                  loans={loans.filter(
+                    (loan) =>
+                      loan.borrower.id === active.id ||
+                      loan.lender.id === active.id,
+                  )}
+                  userId={user.id}
+                  busy={busy}
+                  onAction={loanAction}
+                />
+                <p>
+                  Outstanding loans also appear in Friends if a chat is closed.
+                </p>
+              </details>
             </>
           )}
         </aside>

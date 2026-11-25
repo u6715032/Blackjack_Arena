@@ -77,6 +77,7 @@ test("wheel distribution, retries, concurrent requests, ledger and leaderboard",
     assert.deepEqual(Object.keys(ranks.players[0]).sort(), [
       "chips",
       "id",
+      "netChips",
       "rank",
       "username",
     ]);

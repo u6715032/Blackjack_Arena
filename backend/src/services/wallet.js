@@ -60,7 +60,7 @@ export async function debitWallet({ userId, amount, key, kind, session }) {
     { session, returnDocument: "after" },
   );
   if (!user) {
-    const error = new Error("Insufficient chips for this wager.");
+    const error = new Error("Insufficient chips for this transaction.");
     error.status = 409;
     throw error;
   }

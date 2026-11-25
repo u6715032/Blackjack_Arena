@@ -166,6 +166,9 @@ cleanup clears all messages. Message cleanup does not alter financial records.
 Presence uses a separate authenticated social socket, so navigating away from a
 multiplayer game still closes its game socket and preserves the existing stand-on-
 disconnect behavior.
+Friends can transfer chips and propose interest-free 72-hour loans. The borrower
+can make partial repayments even if the friendship is later removed or blocked;
+overdue debt restricts new borrowing and non-repayment outgoing transfers.
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional

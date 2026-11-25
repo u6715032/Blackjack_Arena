@@ -11,6 +11,9 @@ import {
   Block,
   Message,
   Maintenance,
+  Loan,
+  ChipTransfer,
+  LoanRepayment,
 } from "../models/index.js";
 import { calculateHandTotal } from "../game/engine.js";
 import { initializeWallet, accessWallet } from "./wallet.js";
@@ -32,6 +35,9 @@ export async function connectDatabase(mongoUri) {
   await Block.init();
   await Message.init();
   await Maintenance.init();
+  await Loan.init();
+  await ChipTransfer.init();
+  await LoanRepayment.init();
   await cleanupHistory();
 }
 

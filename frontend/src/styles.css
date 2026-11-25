@@ -1591,3 +1591,39 @@ td {
 .chat-compose {
   padding: 0.6rem;
 }
+.chat-finance {
+  padding: 0.5rem 0.75rem;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.chat-finance p,
+.loan-list p {
+  font-size: 0.8rem;
+}
+.chip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.chip-actions input,
+.loan-repay input {
+  width: 5rem;
+}
+.loan-row {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.7rem 0;
+  padding: 0.7rem;
+  background: #203d30;
+  border-radius: 0.4rem;
+}
+.loan-row button {
+  width: fit-content;
+}
+.loan-repay {
+  display: flex;
+  gap: 0.4rem;
+}
+.loan-overdue {
+  color: #ffbb8a;
+}

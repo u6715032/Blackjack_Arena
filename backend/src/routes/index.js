@@ -57,7 +57,12 @@ export function createRoutes({
       .json({ ready: repository.isReady() }),
   );
   router.get("/leaderboard", async (request, response) =>
-    response.json(await leaderboard(Number(request.query.page || 1))),
+    response.json(
+      await leaderboard(
+        Number(request.query.page || 1),
+        request.query.sort || "balance",
+      ),
+    ),
   );
   router.post("/auth/register", loginLimit, async (request, response) => {
     const values = readCredentials(request.body, true);
@@ -122,7 +127,12 @@ export function createRoutes({
     response.json({ chips: user.chips });
   });
   router.get("/leaderboard/me", async (request, response) =>
-    response.json({ player: await leaderboardPosition(request.user._id) }),
+    response.json({
+      player: await leaderboardPosition(
+        request.user._id,
+        request.query.sort || "balance",
+      ),
+    }),
   );
   router.get("/wheel", (request, response) =>
     response.json(wheelConfiguration()),
