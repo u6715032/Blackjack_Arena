@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import { BlackjackTable } from "../components/GameTable";
+import BetControl from "../components/BetControl";
 
 export default function SinglePlayer() {
-  const { user } = useAuth();
+  const { user, refreshBalance } = useAuth();
+  const [wager, setWager] = useState("1");
+  const [payoutMode, setPayoutMode] = useState("standard");
   const [game, setGame] = useState(null);
   const [botCount, setBotCount] = useState(1);
   const [busy, setBusy] = useState(true);
@@ -21,6 +24,7 @@ export default function SinglePlayer() {
     try {
       const data = await api(path, { method: "POST", body });
       setGame(data.game);
+      await refreshBalance();
     } catch (error) {
       setError(error.message);
       const current = await api("/games/single").catch(() => null);
@@ -41,11 +45,9 @@ export default function SinglePlayer() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">YOUR PACE. YOUR TABLE.</span>
           <h1>Single player</h1>
-          <p>Play the dealer. Learn alongside the network.</p>
         </div>
-        <span className="outline-tag">NO BETTING · JUST BLACKJACK</span>
+        <span className="outline-tag">VIRTUAL CHIPS ONLY</span>
       </div>
       {error && (
         <p className="notice error" role="alert">
@@ -65,9 +67,48 @@ export default function SinglePlayer() {
               <option value={2}>2 neural network bots</option>
             </select>
           </label>
-          <button
+          <BetControl
+            amount={wager}
+            onChange={setWager}
+            balance={user.chips}
             disabled={busy}
-            onClick={() => update("/games/single", { botCount })}
+          />
+          <label>
+            Payout rules
+            <select
+              value={payoutMode}
+              onChange={(event) => setPayoutMode(event.target.value)}
+            >
+              <option value="standard">Standard</option>
+              <option value="experimental">Experimental (optional)</option>
+            </select>
+          </label>
+          <small>
+            Standard returns 2× on a win, 2.5× on a natural blackjack, and the
+            stake on a push. Payouts round down to whole chips.
+          </small>
+          {payoutMode === "experimental" && (
+            <small>
+              After 10 saved games, players below 40% wins receive 2.1× on
+              ordinary wins; otherwise standard 2× applies. Natural blackjack
+              returns 2.5×. Whole-chip payouts round down. The rule is fixed
+              before cards are shown.
+            </small>
+          )}
+          <button
+            disabled={
+              busy ||
+              !Number.isSafeInteger(Number(wager)) ||
+              Number(wager) < 1 ||
+              Number(wager) > user.chips
+            }
+            onClick={() =>
+              update("/games/single", {
+                botCount,
+                wager: Number(wager),
+                payoutMode,
+              })
+            }
           >
             {busy
               ? "Dealing…"

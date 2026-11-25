@@ -2,6 +2,9 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "express-rate-limit";
 import { publicUser } from "../middleware/auth.js";
+import { wheelConfiguration, spinWheel } from "../services/wheel.js";
+import { leaderboard, leaderboardPosition } from "../services/leaderboard.js";
+import { createSocialRoutes } from "./social.js";
 
 function badRequest(message) {
   const error = new Error(message);
@@ -33,7 +36,13 @@ function readCredentials(body, registering) {
   return { email, password, username: body.username };
 }
 
-export function createRoutes({ repository, auth, games, io }) {
+export function createRoutes({
+  repository,
+  auth,
+  games,
+  io,
+  socialOnline = () => false,
+}) {
   const router = Router();
   const loginLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -46,6 +55,14 @@ export function createRoutes({ repository, auth, games, io }) {
     response
       .status(repository.isReady() ? 200 : 503)
       .json({ ready: repository.isReady() }),
+  );
+  router.get("/leaderboard", async (request, response) =>
+    response.json(
+      await leaderboard(
+        Number(request.query.page || 1),
+        request.query.sort || "balance",
+      ),
+    ),
   );
   router.post("/auth/register", loginLimit, async (request, response) => {
     const values = readCredentials(request.body, true);
@@ -71,25 +88,69 @@ export function createRoutes({ repository, auth, games, io }) {
       return response
         .status(401)
         .json({ error: "Email or password is incorrect." });
-    auth.signIn(response, user);
-    response.json({ user: publicUser(user) });
+    const wallet = repository.accessWallet
+      ? await repository.accessWallet(user._id)
+      : { user };
+    auth.signIn(response, wallet.user);
+    if (wallet.rewardGranted)
+      io.to(`user:${wallet.user._id}`).emit("wallet:update");
+    response.json({
+      user: publicUser(wallet.user),
+      rewardGranted: wallet.rewardGranted,
+      nextRewardAt: wallet.nextRewardAt,
+    });
   });
   router.use(auth.requireUser);
+  router.use("/social", createSocialRoutes(io, socialOnline));
   router.post("/auth/logout", async (request, response) => {
     await repository.revokeSessions(String(request.user._id));
     io?.in(`user:${request.user._id}`).disconnectSockets(true);
     auth.clear(response);
     response.json({ message: "Logged out from all devices." });
   });
-  router.get("/auth/me", (request, response) =>
-    response.json({ user: publicUser(request.user) }),
-  );
+  router.get("/auth/me", async (request, response) => {
+    const wallet = repository.accessWallet
+      ? await repository.accessWallet(request.user._id)
+      : { user: request.user };
+    if (wallet.rewardGranted)
+      io.to(`user:${wallet.user._id}`).emit("wallet:update");
+    response.json({
+      user: publicUser(wallet.user),
+      rewardGranted: wallet.rewardGranted,
+      nextRewardAt: wallet.nextRewardAt,
+    });
+  });
   router.get("/profile", async (request, response) =>
     response.json({
       user: publicUser(request.user),
       statistics: await repository.getStatistics(String(request.user._id)),
     }),
   );
+  router.get("/wallet", async (request, response) => {
+    const user = await repository.findUserById(String(request.user._id));
+    response.json({ chips: user.chips });
+  });
+  router.get("/leaderboard/me", async (request, response) =>
+    response.json({
+      player: await leaderboardPosition(
+        request.user._id,
+        request.query.sort || "balance",
+      ),
+    }),
+  );
+  router.get("/wheel", (request, response) =>
+    response.json(wheelConfiguration()),
+  );
+  router.post("/wheel/spin", async (request, response) => {
+    const spin = await spinWheel(request.user._id, request.body?.requestId);
+    io.to(`user:${request.user._id}`).emit("wallet:update");
+    response.json({
+      requestId: spin.requestId,
+      prize: spin.prize,
+      prizeIndex: spin.prizeIndex,
+      cost: spin.cost,
+    });
+  });
   router.get("/statistics", async (request, response) =>
     response.json({
       statistics: await repository.getStatistics(String(request.user._id)),
@@ -109,7 +170,12 @@ export function createRoutes({ repository, auth, games, io }) {
   );
   router.post("/games/single", async (request, response) =>
     response.status(201).json({
-      game: await games.startSingle(request.user, request.body?.botCount),
+      game: await games.startSingle(
+        request.user,
+        request.body?.botCount,
+        request.body?.wager,
+        request.body?.payoutMode,
+      ),
     }),
   );
   router.post("/games/single/action", async (request, response) =>

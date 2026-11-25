@@ -29,6 +29,14 @@ export default function Navbar() {
           {user ? (
             <>
               <NavLink to="/profile">{user.username}</NavLink>
+              {Number.isSafeInteger(user.chips) && (
+                <span
+                  className="chip-balance"
+                  aria-label={`${user.chips} virtual chips`}
+                >
+                  ● {user.chips.toLocaleString()} chips
+                </span>
+              )}
               <button className="text-button" onClick={signOut}>
                 Log out
               </button>

@@ -9,15 +9,29 @@ token, hidden card, shoe order, or database credentials are response fields.
 | Method and path | Input | Result |
 | --- | --- | --- |
 | GET `/api/health` | None | `{ready}` for database connection |
+| GET `/api/leaderboard?page=1&sort=balance` | Public; 20 results per page; sort is `balance` or `net` | Rank, user ID, username, chips and net chips |
 | POST `/api/auth/register` | username, email, password | `{user}` and session cookie |
-| POST `/api/auth/login` | email, password | `{user}` and session cookie |
+| POST `/api/auth/login` | email, password | `{user,rewardGranted,nextRewardAt}` and session cookie |
 | POST `/api/auth/logout` | Session cookie | Revoke all user's sessions, clear cookie |
-| GET `/api/auth/me` | Session cookie | `{user}` |
+| GET `/api/auth/me` | Session cookie | `{user,rewardGranted,nextRewardAt}`; claims an eligible reward |
 | GET `/api/profile` | Session cookie | `{user,statistics}` |
 | GET `/api/statistics` | Session cookie | `{statistics}` |
 | GET `/api/history` | Session cookie; optional `page=1` | `{history,pageSize:20}` |
 | GET `/api/games/single` | Session cookie | `{game}` or `{game:null}` |
-| POST `/api/games/single` | `{botCount:0|1|2}` | `{game}` |
+| GET `/api/wallet` | Session cookie | `{chips}` |
+| GET `/api/leaderboard/me` | Session cookie | Current player's balance rank |
+| GET `/api/wheel` | Session cookie | Cost, prizes, probabilities and theoretical RTP |
+| POST `/api/wheel/spin` | `{requestId}` UUID v4 | Durable server-selected prize; same ID retries the same spin |
+| GET `/api/social` | Session cookie | Friends, incoming/outgoing requests, blocks, online status and unread counts |
+| GET `/api/social/search?q=...` | Username substring, 2–24 characters | Public IDs and usernames |
+| POST `/api/social/friends/:id/:action` | `request`, `accept`, `decline`, `cancel`, `remove`, `block`, or `unblock` | Authorized relationship change |
+| GET `/api/social/messages/:id` | Accepted, unblocked friend | Latest 20 non-expired messages, marked read |
+| POST `/api/social/messages/:id` | `{text}` up to 1000 characters | Send a private message |
+| GET `/api/social/loans` | Session cookie | Own loan records, limit and duration |
+| POST `/api/social/transfers` | `{recipient,amount,requestId}` | Transfer receipt; UUID makes retries idempotent |
+| POST `/api/social/loans` | `{otherId,direction,amount,requestId}`; direction `borrow` or `lend` | Loan proposal ID |
+| POST `/api/social/loans/:id/:action` | `accept`, `decline`, `cancel`, or `repay`; repayment requires `{amount,requestId}` | Loan action result |
+| POST `/api/games/single` | `{botCount:0|1|2,wager,payoutMode}` | `{game}`; mode is `standard` or `experimental` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
 | POST `/api/games/single/advice` | roundId, revision | Model recommendation |
 | POST `/api/games/single/retry` | Session cookie | Retry paused bot or unsaved result |
@@ -51,7 +65,11 @@ revision; the prediction itself never plays a human move. In multiplayer an
 already-expired deadline is enforced before advice: the server stands the player
 and rejects the request. The deadline remains active while inference is awaited.
 
-Public users contain id, username, email, createdAt. Public game snapshots contain
+The authenticated user object includes `chips` after wallet initialization.
+Login and session restoration atomically grant an eligible 10-chip reward and
+return the next eligibility time as an ISO timestamp. Registration creates a
+100-chip opening balance; the first subsequent login or session restoration can
+claim the first daily reward. Public users contain id, username, email, createdAt. Public game snapshots contain
 id, mode, revision, status, currentPlayerId, players, dealer, saved, saveError,
 aiError. Multiplayer snapshots also contain `turnDeadline`: a Unix timestamp in
 milliseconds for the active human's deadline, or `null` after completion. The
@@ -65,6 +83,12 @@ Handshake uses the session cookie with credentials enabled; identity is rechecke
 before every event. Origin must match the configured browser origin when present.
 One account may have several sockets but only one seat. Events are limited per
 socket, and room mutations use the same authoritative engine as single player.
+An additional socket with handshake `auth.scope` set to `social` joins the user's
+private notification room and does not count as a multiplayer connection. It
+receives `social:update` and `social:presence-change` hints, without private
+message contents; clients fetch authorized state over HTTP. Social writes are
+limited to 60 actions per minute per authenticated account in addition to the
+general API limit, which keys signed sessions by account and anonymous traffic by IP.
 
 | Event | Payload | Acknowledgement data |
 | --- | --- | --- |
@@ -72,6 +96,7 @@ socket, and room mutations use the same authoritative engine as single player.
 | `room:join` | `{code:"ABC234"}` | Joined room |
 | `room:get` | `{}` | Own room or null |
 | `room:start` | `{}` | Room with new round (host only) |
+| `room:wager` | `{amount}` | Set the authenticated player's next wager |
 | `game:action` | action, roundId, revision | Updated room |
 | `game:advice` | roundId, revision | Recommendation for own hand |
 | `game:save` | `{}` | Room after saving retry |

@@ -15,6 +15,7 @@ export function testRepository() {
   }
   return {
     isReady: () => true,
+    async placeBets() {},
     async createUser(values) {
       if (
         [...users.values()].some(

@@ -4,7 +4,7 @@ MongoDB stores documents in collections. A document resembles a JavaScript
 object but has a persistent ID. Mongoose defines expected fields and offers
 methods such as `findOne`, `create`, and `findOneAndUpdate`.
 
-## Four collections
+## Core and V2 collections
 
 | Model | Main fields | Meaning |
 | --- | --- | --- |
@@ -16,6 +16,9 @@ methods such as `findOne`, `create`, and `findOneAndUpdate`.
 The definitions are in `backend/src/models/index.js`. Mongoose pluralizes names
 into collection names. A `user` field is an ObjectId reference to `User`; history
 does not duplicate the user's email or password.
+V2 adds wagers, a chip ledger, wheel receipts, friendships, blocks, messages,
+loans, transfer receipts and repayment receipts. Their indexes and relationships
+are described in [the V2 database architecture](../v2-database-architecture.md).
 
 ```mermaid
 erDiagram

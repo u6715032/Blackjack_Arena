@@ -2,7 +2,9 @@
 
 A university Senior Project: six-deck Blackjack with accounts, neural network
 tablemates, a human strategy assistant, and private rooms for 2–4 human players.
-There is no betting, currency, chat, leaderboard, or real-money feature.
+Accounts have virtual chips, daily rewards, blackjack wagers, a lucky wheel,
+a public leaderboard, friendships and private chat. Real-money features are not
+implemented.
 
 The application uses plain JavaScript React/Vite, Express, Socket.IO, MongoDB
 Atlas/Mongoose, and a local Python FastAPI/PyTorch service. Offline model training
@@ -46,10 +48,8 @@ Open **http://localhost:5173**. Use the hostname configured in `CLIENT_ORIGIN`;
 Create an account, select tablemates, and deal a hand. For multiplayer, use two
 different browser profiles or a normal window plus a private window so each person
 has a separate login cookie. Leaving the multiplayer page disconnects its socket.
-The homepage's Single Player and Multiplayer cards choose the mode. The hero
-keeps its title, description, card artwork, and footnote; duplicate hero buttons
-and the learning strip have been removed. Homepage-specific spacing targets
-1366×768 and 1920×1080 desktop viewports while allowing scrolling on mobile.
+The homepage provides game modes, rewards, friends and rankings; the layout
+stacks on small screens.
 
 If a port is already occupied, stop the old process before starting another copy.
 Vite selects the backend port from the private configuration on the Node side;
@@ -115,21 +115,59 @@ npm test
 # Actual checkpoint loading, preprocessing, input validation, TF/PT parity
 npm run test:ai
 
-# Start FastAPI first. Uses configured MongoDB and actual model inference;
-# includes history retention, rollback, concurrency, and duplicate-save checks.
-npm run test:database
+# Start FastAPI first. Explicitly select a disposable replica-set database whose
+# name contains "test"; never use the application database. The tests include
+# history retention, wallet concurrency, and actual model inference.
+MONGODB_TEST_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' npm run test:database
 
-# Start all three services with npm run dev before browser tests.
-# Uses Chrome/Chromium; includes live gameplay and mocked profile responses.
-npm run test:browser
+# Start all three services against the SAME dedicated test database first.
+# Set both variables for the browser test process as an additional safeguard.
+MONGODB_TEST_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' \
+MONGODB_URI='mongodb://127.0.0.1:27027/blackjack_test?replicaSet=rs0' npm run test:browser
 
 # Production frontend bundle: frontend/dist
 npm run build
 ```
 
 Use a disposable dedicated MongoDB database for integration/browser checks.
-Test-account cleanup targets only created IDs, but normal backend/database startup
-also applies the history retention policy to existing users in that database.
+Test-account cleanup targets only created IDs, but test database startup also
+applies the history retention policy to existing users in that database. The
+integration suite requires `MONGODB_TEST_URI` and will not use `MONGODB_URI`.
+
+## Virtual chips (work in progress)
+
+New accounts receive 100 virtual chips. Existing accounts are migrated lazily
+when they log in or restore their session: a MongoDB transaction initializes the
+missing balance and writes an opening ledger entry without changing statistics or
+history. The first login/session restoration also awards 10 chips, then another
+10 after each rolling 24-hour interval when the session is accessed. Missed days
+do not accumulate. The balance and reward entry commit together; concurrent
+claims serialize on the user record. The database must support transactions.
+Chips have no monetary value, purchase, withdrawal, or conversion. Single-player
+and multiplayer wagers use integer chips from 1 to 1,000,000. Standard ordinary
+wins return twice the wager, naturals return 2.5 times the wager, pushes return the
+stake and losses return zero. Fractional chips are rounded down; a one-chip natural
+therefore returns two chips. Each multiplayer player chooses a wager, defaulting
+to one chip. If any player cannot afford their wager, the entire deal is rejected.
+
+Single-player offers an optional experimental rule: after at least ten saved
+games, a player with less than 40% wins gets 2.1 times the stake on ordinary wins;
+otherwise standard rules apply. Naturals and pushes are unchanged. The selected
+rule is stored with the wager before cards are shown. Multiplayer always uses the
+standard rule. Card shuffling is unchanged. See [economics](docs/v2-economics.md)
+for RTP interpretation, simulation and restart recovery, and [the implementation
+plan](docs/v2-implementation-plan.md) for remaining work.
+
+The homepage includes friend requests and private conversations. Only accepted,
+unblocked friends can exchange messages. Each conversation keeps its latest 20
+messages, and individual messages expire after seven days; a persisted weekly
+cleanup clears all messages. Message cleanup does not alter financial records.
+Presence uses a separate authenticated social socket, so navigating away from a
+multiplayer game still closes its game socket and preserves the existing stand-on-
+disconnect behavior.
+Friends can transfer chips and propose interest-free 72-hour loans. The borrower
+can make partial repayments even if the friendship is later removed or blocked;
+overdue debt restricts new borrowing and non-repayment outgoing transfers.
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional
@@ -184,9 +222,9 @@ not the internal reasoning of individual neurons.
 
 ```text
 frontend/src/
-  AuthContext.jsx       Shared logged-in user state
+  AuthContext.jsx       Shared session, balance and social notifications
   api.js                Browser-to-Express requests
-  components/           Cards, hands, controls, assistant, lobby, navbar
+  components/           Shared table, betting, wheel, chat, loans and rankings
   pages/                Home, accounts, single player, multiplayer, profile
 backend/src/
   app.js                Express/Socket.IO assembly, origin checks, errors
@@ -194,9 +232,9 @@ backend/src/
   config.js             Private server configuration
   game/engine.js        Card rules and round state transitions
   middleware/auth.js    JWT signing and verification
-  models/index.js       User, GameHistory, PlayerStatistics, RoundReceipt models
-  routes/index.js       REST handlers (controller role)
-  services/             Database, games/rooms, internal AI requests
+  models/index.js       Accounts, history, ledger, wagers, social and loan models
+  routes/               Authenticated REST handlers
+  services/             Database, games, economy, social and internal AI requests
   sockets.js            Authenticated real-time event handlers
 ai-service/
   model.py              Shared data, labels, normalization, networks, model utilities
@@ -211,21 +249,24 @@ docs/learning-guide/    Ten teaching chapters and defense preparation
 
 See [the learning guide](docs/learning-guide/01-project-overview.md),
 [team plan](docs/team-learning-plan.md), and
-[API reference](docs/api-reference.md). Route handlers act as simple controllers;
+[API reference](docs/api-reference.md), [V2 database architecture](docs/v2-database-architecture.md),
+and [V2 economics](docs/v2-economics.md). Route handlers act as simple controllers;
 there is no extra controller directory duplicating them.
 
 ## Operating limits
 
 This is a local, single-server project; it has not been publicly deployed. Active
 single-player games, private rooms, and their locks live in process memory and
-reset on restart. MongoDB retains each user's latest 20 completed round records
+reset on restart. At startup, the single-server backend refunds pending wagers;
+completed wagers already settled remain unchanged. Do not run multiple backend
+instances against the same database: one instance would refund another's active
+wagers. MongoDB retains each user's latest 20 completed round records
 across single-player and multiplayer, ordered by `playedAt` descending and then
 `_id` descending. Profile history has no pagination. Lifetime game counts,
 wins/losses/pushes, and win percentage cover all saved rounds, including pruned
 history. Minimal `RoundReceipt` keys remain so an old save retry cannot count twice.
 A failed result save is visible and retryable while that process is running;
-a restart can lose it.
-Do not restart while demonstrating an unfinished round.
+a restart can lose the unsaved result, in which case its pending wager is refunded.
 
 Disconnecting a user's last socket stands their unfinished multiplayer hand,
 including a future turn. Reconnecting cannot undo the stand. The host role moves

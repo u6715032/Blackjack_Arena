@@ -1,5 +1,36 @@
 # AI cleanup and application verification report
 
+## V2 verification — 25 November 2026
+
+Executed against dedicated local test databases and local services; the existing
+application database and `.env` files were not used for destructive tests.
+
+| Command or check | Result |
+| --- | --- |
+| `npm test` | 40 backend tests passed, including socket behavior, turn timers, wager-entry race and account-keyed rate limiting. |
+| `npm run test:ai` | 40 passed, with seven upstream deprecation warnings; actual checkpoint, inference and framework parity tests ran. |
+| `npm run test:database` | 14 tests passed with a disposable local replica set and live local FastAPI, including concurrent claims, wagers, wheel, chat, transfers, loans and process-restart refunds. |
+| `node --test backend/tests/integration/restart.integration.js` | Passed an expanded restart test covering a real forced kill, idempotent wager refund, due chat cleanup, and loan persistence and repayment. |
+| `npm run test:browser` | 9 Playwright tests passed against a separate disposable local database, including a two-account social/economy journey and live multiplayer timer. |
+| `npx playwright test tests/browser/gameplay.spec.js` | 2 passed after extending the multiplayer flow to select and verify different player wagers. |
+| `npm run build` | Vite production build passed. |
+| `node backend/scripts/simulate-rtp.js 10000` | Sample estimates: standard RTP 94.44%, boosted RTP 98.105%, using the documented simple strategy and ten-chip stake. Results vary by sample. |
+
+Screenshots of the homepage and shared table were captured and visually inspected
+at 1366×768, 1920×1080 and 390×844. Browser assertions checked horizontal overflow
+at those sizes. A browser journey covered registration, friend request, live chat,
+transfer, loan acceptance and partial/full repayment, wheel spin and a wagered hand;
+other browser tests covered AI advice, two-player rooms and the server timer.
+
+The checks above are local functional and targeted concurrency/security tests,
+not an independent security audit, load test, accessibility certification or
+public deployment. The server is single-instance: active hands live in memory,
+and startup refunds unresolved bets rather than restoring them. A second server
+using the same database could incorrectly refund another server's active bets.
+Presence and rate-limit counters are process-local. TTL deletion is asynchronous;
+authorized chat reads filter expired messages and clients periodically refresh.
+Public net holdings reveal aggregate debt but not individual loan details.
+
 Historical verification on **24 October 2026** (Asia/Bangkok). This was a refactor
 of the existing application, with no intended website, game-rule, authentication,
 or API-response change. No public deployment or remote Git push was performed

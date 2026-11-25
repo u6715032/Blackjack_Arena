@@ -3,9 +3,11 @@ import { io } from "socket.io-client";
 import { useAuth } from "../AuthContext";
 import RoomLobby, { PlayerList } from "../components/RoomLobby";
 import { BlackjackTable } from "../components/GameTable";
+import BetControl from "../components/BetControl";
 
 export default function Multiplayer() {
-  const { user } = useAuth();
+  const { user, refreshBalance } = useAuth();
+  const [wager, setWager] = useState("1");
   const socketRef = useRef(null);
   const [room, setRoom] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -19,6 +21,7 @@ export default function Multiplayer() {
         serverTimeOffset: nextRoom.serverTime - Date.now(),
       },
     );
+    refreshBalance().catch(() => {});
   }
   function send(event, data = {}) {
     return new Promise((resolve, reject) => {
@@ -82,9 +85,7 @@ export default function Multiplayer() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">BETTER IN GOOD COMPANY</span>
           <h1>Multiplayer</h1>
-          <p>A private table for you and your friends.</p>
         </div>
         <span className="outline-tag">
           <span className={`status-dot ${connected ? "gold" : ""}`} />
@@ -169,6 +170,33 @@ export default function Multiplayer() {
               Leave room ↗
             </button>
           </div>
+          {(!game || (game.status === "complete" && game.saved)) && (
+            <div className="round-setup panel">
+              <BetControl
+                amount={wager}
+                onChange={setWager}
+                balance={user.chips}
+                disabled={busy || !connected}
+              />
+              <button
+                disabled={
+                  busy ||
+                  !connected ||
+                  !Number.isSafeInteger(Number(wager)) ||
+                  Number(wager) < 1 ||
+                  Number(wager) > user.chips
+                }
+                onClick={() => update("room:wager", { amount: Number(wager) })}
+              >
+                Set wager
+              </button>
+              <span>
+                Current wager:{" "}
+                {room.players.find((player) => player.id === user.id)?.wager}{" "}
+                chips
+              </span>
+            </div>
+          )}
           {!game ? (
             <RoomLobby
               room={room}

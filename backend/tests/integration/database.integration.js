@@ -1,4 +1,4 @@
-// Explicit opt-in integration test: real Atlas, real FastAPI, disposable test users.
+// Explicit opt-in integration test: dedicated MongoDB, real FastAPI, disposable users.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -11,6 +11,8 @@ import {
   GameHistory,
   PlayerStatistics,
   RoundReceipt,
+  ChipTransaction,
+  Bet,
 } from "../../src/models/index.js";
 import { createApplication } from "../../src/app.js";
 import { createRound, processStand } from "../../src/game/engine.js";
@@ -18,9 +20,10 @@ import { testShoe } from "../helpers.js";
 import { testRepository } from "../helpers.js";
 import { createGameService } from "../../src/services/games.js";
 import { createAiClient } from "../../src/services/ai.js";
+import { testDatabaseUri } from "./test-database.js";
 
-test("real Atlas: accounts, real AI bots/advice, durable history, statistics and idempotency", async () => {
-  const config = readConfig();
+test("real MongoDB: accounts, real AI bots/advice, durable history, statistics and idempotency", async () => {
+  const config = { ...readConfig(), mongoUri: testDatabaseUri() };
   const createdIds = [];
   let application;
   try {
@@ -140,6 +143,8 @@ test("real Atlas: accounts, real AI bots/advice, durable history, statistics and
       await GameHistory.deleteMany({ user: { $in: createdIds } });
       await RoundReceipt.deleteMany({ user: { $in: createdIds } });
       await PlayerStatistics.deleteMany({ user: { $in: createdIds } });
+      await ChipTransaction.deleteMany({ user: { $in: createdIds } });
+      await Bet.deleteMany({ user: { $in: createdIds } });
       await User.deleteMany({ _id: { $in: createdIds } });
     }
     await mongoose.disconnect();

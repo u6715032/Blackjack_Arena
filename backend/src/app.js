@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { createAuth } from "./middleware/auth.js";
+import { createAuth, cookieName } from "./middleware/auth.js";
 import { createRoutes } from "./routes/index.js";
 import { createGameService } from "./services/games.js";
 import { createAiClient } from "./services/ai.js";
@@ -34,6 +34,7 @@ export function createApplication({
   app.use(cors({ origin: config.clientOrigin, credentials: true }));
   app.use(express.json({ limit: "8kb" }));
   app.use(cookieParser());
+  const auth = createAuth(config, repository);
   // SameSite cookies and explicit Origin validation protect cookie-authenticated writes from CSRF.
   app.use((request, response, next) => {
     if (
@@ -52,18 +53,31 @@ export function createApplication({
     rateLimit({
       windowMs: 60000,
       limit: 240,
+      keyGenerator: (request) => {
+        const subject = auth.rateLimitSubject(request.cookies[cookieName]);
+        return subject ? `user:${subject}` : `ip:${ipKeyGenerator(request.ip)}`;
+      },
       standardHeaders: "draft-8",
       legacyHeaders: false,
       message: { error: "Too many requests. Please wait a moment." },
     }),
   );
-  const auth = createAuth(config, repository);
   const games = createGameService({
     repository,
     predict: predict || createAiClient(config.aiServiceUrl),
     shoeFactory,
   });
-  app.use("/api", createRoutes({ repository, auth, games, io }));
+  const socialConnections = new Map();
+  app.use(
+    "/api",
+    createRoutes({
+      repository,
+      auth,
+      games,
+      io,
+      socialOnline: (id) => socialConnections.has(id),
+    }),
+  );
   app.use((request, response) =>
     response.status(404).json({ error: "Route not found." }),
   );
@@ -87,6 +101,6 @@ export function createApplication({
         : "Database or server unavailable. Please retry.",
     });
   });
-  configureSockets(io, auth, games, config.clientOrigin);
+  configureSockets(io, auth, games, config.clientOrigin, socialConnections);
   return { app, server, io, games };
 }

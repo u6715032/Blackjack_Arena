@@ -7,7 +7,9 @@ export function PlayerList({ players, hostId, userId }) {
           <span>
             {player.username}
             {player.id === userId ? " (you)" : ""}
-            <small>{player.id === hostId ? "Host" : "Player"}</small>
+            <small>
+              {player.id === hostId ? "Host" : "Player"} · {player.wager} chips
+            </small>
           </span>
           <span className={player.connected ? "connection-online" : "muted"}>
             {player.connected ? "Connected" : "Disconnected"}

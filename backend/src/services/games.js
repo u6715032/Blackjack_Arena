@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { validateBet, payout } from "./betting.js";
 import {
   createRound,
   applyAction,
@@ -8,6 +9,7 @@ import {
   predictionFeatures,
   determineLegalActions,
   standDisconnectedPlayer,
+  isNaturalBlackjack,
 } from "../game/engine.js";
 
 function fail(message, status = 400) {
@@ -23,6 +25,14 @@ export function createGameService({ repository, predict, shoeFactory }) {
   const busy = new Set();
   const connectionStatus = new Map();
   let notify = () => {};
+  let notifyWallet = () => {};
+  function sendWalletUpdate(userId) {
+    try {
+      notifyWallet(userId);
+    } catch {
+      /* Notification must not affect committed money. */
+    }
+  }
 
   function clearTurnTimer(room) {
     if (room.turn) clearTimeout(room.turn.timer);
@@ -115,8 +125,20 @@ export function createGameService({ repository, predict, shoeFactory }) {
     if (game.status !== "complete" || game.saved) return;
     try {
       await repository.saveRound(game);
+      for (const player of game.players.filter(
+        (entry) => !entry.isBot && entry.wager != null,
+      )) {
+        player.returned = payout(
+          player.wager,
+          player.result,
+          isNaturalBlackjack(player.hand),
+          player.payoutRule || "standard-v1",
+        );
+      }
       game.saved = true;
       game.saveError = null;
+      for (const player of game.players.filter((entry) => !entry.isBot))
+        sendWalletUpdate(player.id);
     } catch {
       game.saveError =
         "Result not saved yet. Retry saving before starting another round.";
@@ -199,16 +221,22 @@ export function createGameService({ repository, predict, shoeFactory }) {
     setNotifier(callback) {
       notify = callback;
     },
+    setWalletNotifier(callback) {
+      notifyWallet = callback;
+    },
     singleView: (userId) => publicGame(singleGames.get(userId)),
-    async startSingle(user, botCount) {
+    async startSingle(user, botCount, wager = 1, payoutMode = "standard") {
       const userId = String(user._id);
       return withLock(userId, async () => {
         if (!Number.isInteger(botCount) || botCount < 0 || botCount > 2)
           fail("Choose 0, 1, or 2 bots.");
+        validateBet(wager);
+        if (!["standard", "experimental"].includes(payoutMode))
+          fail("Choose a valid payout mode.");
         if (userRooms.has(userId))
           fail("Leave your multiplayer room first.", 409);
         ensurePreviousFinished(singleGames.get(userId));
-        const players = [userParticipant(user)];
+        const players = [{ ...userParticipant(user), wager, payoutMode }];
         for (let index = 1; index <= botCount; index += 1)
           players.push({
             id: `bot-${index}`,
@@ -216,7 +244,9 @@ export function createGameService({ repository, predict, shoeFactory }) {
             isBot: true,
           });
         const game = createRound(players, "single", shoeFactory?.());
+        await repository.placeBets(game);
         singleGames.set(userId, game);
+        sendWalletUpdate(userId);
         await runBotsAndSave(game);
         return publicGame(game);
       });
@@ -245,6 +275,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
     },
     createRoom(user) {
       const userId = String(user._id);
+      if (busy.has(userId)) fail("Your table is updating. Try again.", 409);
       if (userRooms.has(userId))
         fail("You already have a room. Reopen it from Multiplayer.", 409);
       ensurePreviousFinished(singleGames.get(userId));
@@ -259,7 +290,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
       const room = {
         code,
         hostId: userId,
-        players: [{ ...userParticipant(user), connected: true }],
+        players: [{ ...userParticipant(user), connected: true, wager: 1 }],
         game: null,
       };
       rooms.set(code, room);
@@ -268,6 +299,7 @@ export function createGameService({ repository, predict, shoeFactory }) {
     },
     joinRoom(user, code) {
       const userId = String(user._id);
+      if (busy.has(userId)) fail("Your table is updating. Try again.", 409);
       if (typeof code !== "string" || !/^[A-Z2-9]{6}$/.test(code))
         fail("Enter a valid six-character room code.");
       const room = rooms.get(code);
@@ -279,13 +311,27 @@ export function createGameService({ repository, predict, shoeFactory }) {
       if (room.game?.status === "playing")
         fail("This room is already playing.", 409);
       if (room.players.length >= 4) fail("This room is full.", 409);
-      room.players.push({ ...userParticipant(user), connected: true });
+      room.players.push({
+        ...userParticipant(user),
+        connected: true,
+        wager: 1,
+      });
       userRooms.set(userId, code);
       broadcast(room);
       return roomView(room);
     },
     roomView(userId) {
       return userRooms.has(userId) ? roomView(requireRoom(userId)) : null;
+    },
+    setRoomWager(userId, amount) {
+      const room = requireRoom(userId);
+      if (busy.has(room.code)) fail("Room is updating. Try again.", 409);
+      if (room.game && (room.game.status !== "complete" || !room.game.saved))
+        fail("Wait for the round to finish.", 409);
+      validateBet(amount);
+      room.players.find((player) => player.id === userId).wager = amount;
+      broadcast(room);
+      return roomView(room);
     },
     async startRoom(userId) {
       const room = requireRoom(userId);
@@ -299,7 +345,10 @@ export function createGameService({ repository, predict, shoeFactory }) {
         for (const player of room.players.filter((player) => !player.connected))
           userRooms.delete(player.id);
         room.players = connected;
-        room.game = createRound(connected, "multi", shoeFactory?.());
+        const game = createRound(connected, "multi", shoeFactory?.());
+        await repository.placeBets(game);
+        room.game = game;
+        for (const player of connected) sendWalletUpdate(player.id);
         await finishRoomUpdate(room);
         return roomView(room);
       });

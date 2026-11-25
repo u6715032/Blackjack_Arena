@@ -226,6 +226,9 @@ export function publicGame(game) {
       blackjack: isNaturalBlackjack(player.hand),
       status: player.status,
       result: player.result,
+      wager: player.wager ?? null,
+      payoutRule: player.payoutRule ?? null,
+      returned: player.returned ?? null,
     })),
     dealer: {
       hand: revealed ? game.dealerHand : [game.dealerHand[0], { hidden: true }],
