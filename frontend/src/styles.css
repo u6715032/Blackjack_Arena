@@ -1596,6 +1596,10 @@ td {
   max-height: 30vh;
   overflow-y: auto;
 }
+.chat-finance summary,
+.chat-finance summary::marker {
+  cursor: pointer;
+}
 .chat-finance p,
 .loan-list p {
   font-size: 0.8rem;
