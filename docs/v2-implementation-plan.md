@@ -25,15 +25,16 @@ set and unique ledger keys, and test code must never use the application's URI.
 4. Wheel and leaderboard: initial implementation includes transactional,
    cryptographically selected outcomes, disclosed probabilities, spin receipts,
    animation and indexed balance rankings. Net-holdings ranking depends on loans.
-5. Friendships and private messages: authorization, presence and retention, while
-   preserving room disconnect behavior.
+5. Friendships and private messages: implemented request lifecycle, blocking,
+   presence, authorized chat and retention with a separate social socket. Browser
+   and restart behavior still need end-to-end verification.
 6. Transfers and loans: atomic receipts, explicit consent, overdue restrictions
    and durable obligations independent of chat retention.
 7. Responsive homepage and shared game-table redesign.
 8. End-to-end, concurrency, browser, recovery and security verification; complete
    API, schema, architecture and economic documentation.
 
-Phases 1–4 have an initial implementation. Phases 5–8 remain incomplete.
+Phases 1–5 have an initial implementation. Phases 6–8 remain incomplete.
 
 ## Wallet migration and rollback considerations
 

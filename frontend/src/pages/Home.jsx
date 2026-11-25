@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext";
 import LuckyWheel from "../components/LuckyWheel";
 import Leaderboard from "../components/Leaderboard";
+import Friends from "../components/Friends";
 export default function Home() {
   const { user, reward } = useAuth();
   const [now, setNow] = useState(Date.now());
@@ -64,6 +65,7 @@ export default function Home() {
         </section>
       )}
       <LuckyWheel />
+      <Friends />
       <Leaderboard />
       <section className="mode-section">
         <div className="section-heading">

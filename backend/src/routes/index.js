@@ -4,6 +4,7 @@ import { rateLimit } from "express-rate-limit";
 import { publicUser } from "../middleware/auth.js";
 import { wheelConfiguration, spinWheel } from "../services/wheel.js";
 import { leaderboard, leaderboardPosition } from "../services/leaderboard.js";
+import { createSocialRoutes } from "./social.js";
 
 function badRequest(message) {
   const error = new Error(message);
@@ -35,7 +36,13 @@ function readCredentials(body, registering) {
   return { email, password, username: body.username };
 }
 
-export function createRoutes({ repository, auth, games, io }) {
+export function createRoutes({
+  repository,
+  auth,
+  games,
+  io,
+  socialOnline = () => false,
+}) {
   const router = Router();
   const loginLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -87,6 +94,7 @@ export function createRoutes({ repository, auth, games, io }) {
     });
   });
   router.use(auth.requireUser);
+  router.use("/social", createSocialRoutes(io, socialOnline));
   router.post("/auth/logout", async (request, response) => {
     await repository.revokeSessions(String(request.user._id));
     io?.in(`user:${request.user._id}`).disconnectSockets(true);

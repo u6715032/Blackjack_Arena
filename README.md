@@ -2,8 +2,9 @@
 
 A university Senior Project: six-deck Blackjack with accounts, neural network
 tablemates, a human strategy assistant, and private rooms for 2–4 human players.
-Accounts have virtual chips, daily rewards, blackjack wagers, a lucky wheel and
-a public leaderboard. Chat and real-money features are not implemented.
+Accounts have virtual chips, daily rewards, blackjack wagers, a lucky wheel,
+a public leaderboard, friendships and private chat. Real-money features are not
+implemented.
 
 The application uses plain JavaScript React/Vite, Express, Socket.IO, MongoDB
 Atlas/Mongoose, and a local Python FastAPI/PyTorch service. Offline model training
@@ -157,6 +158,14 @@ rule is stored with the wager before cards are shown. Multiplayer always uses th
 standard rule. Card shuffling is unchanged. See [economics](docs/v2-economics.md)
 for RTP interpretation, simulation and restart recovery, and [the implementation
 plan](docs/v2-implementation-plan.md) for remaining work.
+
+The homepage includes friend requests and private conversations. Only accepted,
+unblocked friends can exchange messages. Each conversation keeps its latest 20
+messages, and individual messages expire after seven days; a persisted weekly
+cleanup clears all messages. Message cleanup does not alter financial records.
+Presence uses a separate authenticated social socket, so navigating away from a
+multiplayer game still closes its game socket and preserves the existing stand-on-
+disconnect behavior.
 
 Browser tests use installed macOS Chrome when available. Otherwise install
 Playwright's Chromium with `npx playwright install chromium`. An optional

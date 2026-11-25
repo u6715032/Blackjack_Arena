@@ -16,6 +16,7 @@ const userSchema = new Schema(
     chips: { type: Number, min: 0, validate: Number.isSafeInteger },
     lastDailyRewardAt: { type: Date, default: null },
     lastWheelSpinAt: { type: Date, default: null },
+    socialVersion: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -91,6 +92,45 @@ const wheelSpinSchema = new Schema(
 wheelSpinSchema.index({ user: 1, requestId: 1 }, { unique: true });
 wheelSpinSchema.index({ user: 1, createdAt: -1 });
 
+const friendshipSchema = new Schema(
+  {
+    first: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    second: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    requestedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    status: { type: String, enum: ["pending", "accepted"], required: true },
+  },
+  { timestamps: true },
+);
+friendshipSchema.index({ first: 1, second: 1 }, { unique: true });
+friendshipSchema.index({ second: 1, status: 1 });
+const blockSchema = new Schema(
+  {
+    blocker: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    blocked: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { timestamps: true },
+);
+blockSchema.index({ blocker: 1, blocked: 1 }, { unique: true });
+const messageSchema = new Schema(
+  {
+    conversation: { type: String, required: true },
+    sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    recipient: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    text: { type: String, required: true, maxlength: 1000 },
+    readAt: { type: Date, default: null },
+    expiresAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+messageSchema.index({ conversation: 1, createdAt: -1, _id: -1 });
+messageSchema.index({ recipient: 1, sender: 1, readAt: 1 });
+messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const maintenanceSchema = new Schema({
+  key: { type: String, required: true, unique: true },
+  nextChatCleanupAt: { type: Date, required: true },
+  version: { type: Number, default: 0 },
+});
+
 const historySchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
@@ -141,6 +181,10 @@ export const ChipTransaction = mongoose.model(
 );
 export const Bet = mongoose.model("Bet", betSchema);
 export const WheelSpin = mongoose.model("WheelSpin", wheelSpinSchema);
+export const Friendship = mongoose.model("Friendship", friendshipSchema);
+export const Block = mongoose.model("Block", blockSchema);
+export const Message = mongoose.model("Message", messageSchema);
+export const Maintenance = mongoose.model("Maintenance", maintenanceSchema);
 export const GameHistory = mongoose.model("GameHistory", historySchema);
 export const RoundReceipt = mongoose.model("RoundReceipt", receiptSchema);
 export const PlayerStatistics = mongoose.model(

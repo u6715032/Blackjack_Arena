@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "./api";
+import { io } from "socket.io-client";
 
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
@@ -7,6 +8,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reward, setReward] = useState(null);
+  const [socialSocket, setSocialSocket] = useState(null);
+  useEffect(() => {
+    if (!user?.id) {
+      setSocialSocket(null);
+      return;
+    }
+    const socket = io({ withCredentials: true, auth: { scope: "social" } });
+    setSocialSocket(socket);
+    return () => socket.disconnect();
+  }, [user?.id]);
   function acceptSession(data) {
     setUser(data.user);
     setReward({
@@ -46,6 +57,7 @@ export function AuthProvider({ children }) {
         authenticate,
         logout,
         refreshBalance,
+        socialSocket,
       }}
     >
       {children}

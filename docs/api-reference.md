@@ -22,6 +22,11 @@ token, hidden card, shoe order, or database credentials are response fields.
 | GET `/api/leaderboard/me` | Session cookie | Current player's balance rank |
 | GET `/api/wheel` | Session cookie | Cost, prizes, probabilities and theoretical RTP |
 | POST `/api/wheel/spin` | `{requestId}` UUID v4 | Durable server-selected prize; same ID retries the same spin |
+| GET `/api/social` | Session cookie | Friends, incoming/outgoing requests, blocks, online status and unread counts |
+| GET `/api/social/search?q=...` | Username substring, 2–24 characters | Public IDs and usernames |
+| POST `/api/social/friends/:id/:action` | `request`, `accept`, `decline`, `cancel`, `remove`, `block`, or `unblock` | Authorized relationship change |
+| GET `/api/social/messages/:id` | Accepted, unblocked friend | Latest 20 non-expired messages, marked read |
+| POST `/api/social/messages/:id` | `{text}` up to 1000 characters | Send a private message |
 | POST `/api/games/single` | `{botCount:0|1|2,wager,payoutMode}` | `{game}`; mode is `standard` or `experimental` |
 | POST `/api/games/single/action` | action, roundId, revision | Updated `{game}` |
 | POST `/api/games/single/advice` | roundId, revision | Model recommendation |
@@ -74,6 +79,11 @@ Handshake uses the session cookie with credentials enabled; identity is rechecke
 before every event. Origin must match the configured browser origin when present.
 One account may have several sockets but only one seat. Events are limited per
 socket, and room mutations use the same authoritative engine as single player.
+An additional socket with handshake `auth.scope` set to `social` joins the user's
+private notification room and does not count as a multiplayer connection. It
+receives `social:update` and `social:presence-change` hints, without private
+message contents; clients fetch authorized state over HTTP. Social activity is
+limited to 100 requests per minute per IP in addition to the general API limit.
 
 | Event | Payload | Acknowledgement data |
 | --- | --- | --- |

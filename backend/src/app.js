@@ -63,7 +63,17 @@ export function createApplication({
     predict: predict || createAiClient(config.aiServiceUrl),
     shoeFactory,
   });
-  app.use("/api", createRoutes({ repository, auth, games, io }));
+  const socialConnections = new Map();
+  app.use(
+    "/api",
+    createRoutes({
+      repository,
+      auth,
+      games,
+      io,
+      socialOnline: (id) => socialConnections.has(id),
+    }),
+  );
   app.use((request, response) =>
     response.status(404).json({ error: "Route not found." }),
   );
@@ -87,6 +97,6 @@ export function createApplication({
         : "Database or server unavailable. Please retry.",
     });
   });
-  configureSockets(io, auth, games, config.clientOrigin);
+  configureSockets(io, auth, games, config.clientOrigin, socialConnections);
   return { app, server, io, games };
 }

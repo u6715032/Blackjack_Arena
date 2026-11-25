@@ -8,7 +8,13 @@ function sessionCookie(header = "") {
     ?.slice(cookieName.length + 1);
 }
 
-export function configureSockets(io, auth, games, clientOrigin) {
+export function configureSockets(
+  io,
+  auth,
+  games,
+  clientOrigin,
+  socialConnections = new Map(),
+) {
   const connections = new Map();
   io.use(async (socket, next) => {
     try {
@@ -25,6 +31,18 @@ export function configureSockets(io, auth, games, clientOrigin) {
   games.setNotifier((code, room) => io.to(code).emit("room:update", room));
   io.on("connection", (socket) => {
     const userId = String(socket.data.user._id);
+    if (socket.handshake.auth?.scope === "social") {
+      socialConnections.set(userId, (socialConnections.get(userId) || 0) + 1);
+      socket.join(`user:${userId}`);
+      io.emit("social:presence-change");
+      socket.on("disconnect", () => {
+        const count = (socialConnections.get(userId) || 1) - 1;
+        if (count) socialConnections.set(userId, count);
+        else socialConnections.delete(userId);
+        io.emit("social:presence-change");
+      });
+      return;
+    }
     if (!connections.has(userId)) connections.set(userId, new Set());
     connections.get(userId).add(socket.id);
     socket.join(`user:${userId}`);

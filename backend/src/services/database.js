@@ -7,6 +7,10 @@ import {
   ChipTransaction,
   Bet,
   WheelSpin,
+  Friendship,
+  Block,
+  Message,
+  Maintenance,
 } from "../models/index.js";
 import { calculateHandTotal } from "../game/engine.js";
 import { initializeWallet, accessWallet } from "./wallet.js";
@@ -24,6 +28,10 @@ export async function connectDatabase(mongoUri) {
   await ChipTransaction.init();
   await Bet.init();
   await WheelSpin.init();
+  await Friendship.init();
+  await Block.init();
+  await Message.init();
+  await Maintenance.init();
   await cleanupHistory();
 }
 
