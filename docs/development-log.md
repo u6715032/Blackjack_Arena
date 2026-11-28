@@ -1,5 +1,13 @@
 # Development checkpoints
 
+## Dynamic multiplayer turn timer — 28 November 2026
+
+Kept the server-owned 30-second turn deadline and added up to three five-second
+extensions for valid HITs at 15 seconds or less when the player remains active.
+The existing room broadcast carries the updated deadline; the countdown shows
+warning colors and a brief confirmation when the deadline increases. Expiry,
+disconnect stands, and fresh deadlines on turn changes retain their existing paths.
+
 ## Blackjack Arena V2 — 25 November 2026
 
 Built milestones on `feature/blackjack-arena-v2`: wallet and daily rewards;

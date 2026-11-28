@@ -204,8 +204,18 @@ export function StrategyAssistant({ game, userId, onAdvice, onAction, busy }) {
     </aside>
   );
 }
-function TurnCountdown({ deadline, serverTimeOffset }) {
+function TurnCountdown({ deadline, serverTimeOffset, revision }) {
   const [now, setNow] = useState(Date.now);
+  const [extensionAnimation, setExtensionAnimation] = useState(0);
+  const previous = useRef({ deadline, revision });
+  useEffect(() => {
+    if (
+      revision > previous.current.revision &&
+      deadline > previous.current.deadline
+    )
+      setExtensionAnimation((value) => value + 1);
+    previous.current = { deadline, revision };
+  }, [deadline, revision]);
   useEffect(() => {
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 250);
@@ -216,12 +226,23 @@ function TurnCountdown({ deadline, serverTimeOffset }) {
     Math.ceil((deadline - now - serverTimeOffset) / 1000),
   );
   return (
-    <span
-      className="turn-countdown"
-      role="timer"
-      aria-label="Time remaining in turn"
-    >
-      {seconds}s remaining
+    <span className="turn-countdown-wrap">
+      <span
+        className={`turn-countdown${seconds <= 5 ? " critical" : seconds <= 15 ? " warning" : ""}`}
+        role="timer"
+        aria-label="Time remaining in turn"
+      >
+        {seconds}s remaining
+      </span>
+      {extensionAnimation > 0 && (
+        <span
+          key={extensionAnimation}
+          className="turn-extension"
+          aria-hidden="true"
+        >
+          +5s
+        </span>
+      )}
     </span>
   );
 }
@@ -306,7 +327,9 @@ export function BlackjackTable({
               game.status === "playing" &&
               game.turnDeadline != null && (
                 <TurnCountdown
+                  key={`${game.id}:${game.currentPlayerId}`}
                   deadline={game.turnDeadline}
+                  revision={game.revision}
                   serverTimeOffset={serverTimeOffset}
                 />
               )}

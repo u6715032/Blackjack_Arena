@@ -115,8 +115,14 @@ fields are omitted from this illustration:
 {"serverTime":1794800000000,"game":{"turnDeadline":1794800030000}}
 ```
 
-The server owns the 30-second deadline for the whole human turn. HIT preserves it;
-changing the active player starts a fresh deadline. Clients use `serverTime` to
+The server starts each human turn with a 30-second deadline. A valid HIT made
+with more than 0 and at most 15 seconds remaining adds 5 seconds to the existing
+deadline if the player remains active. At most three such extensions are allowed
+per turn (45 seconds total); a HIT that busts, reaches 21, or completes the round
+does not extend it. Invalid, duplicate, stale, out-of-turn, and expired actions
+do not earn time. Changing the active player starts a fresh 30-second deadline
+and extension allowance. The updated deadline is sent in `room:update` and
+returned in subsequent room snapshots. Clients use `serverTime` to
 estimate their clock offset and display the remaining time from `game.turnDeadline`.
 There is no per-second socket event or client command to trigger expiry. On
 timeout the server applies normal STAND with current engine revision validation,

@@ -18,6 +18,13 @@ function fail(message, status = 400) {
   throw error;
 }
 
+const TURN_TIMER = Object.freeze({
+  duration: 30000,
+  extensionThreshold: 15000,
+  extensionDuration: 5000,
+  maxExtensions: 3,
+});
+
 export function createGameService({ repository, predict, shoeFactory }) {
   const singleGames = new Map();
   const rooms = new Map();
@@ -50,10 +57,15 @@ export function createGameService({ repository, predict, shoeFactory }) {
   }
   function scheduleTurnTimeout(room, turn, delay) {
     if (!isCurrentTurn(room, turn)) return;
+    clearTimeout(turn.timer);
+    const token = {};
+    turn.timerToken = token;
     turn.timer = setTimeout(() => {
+      if (turn.timerToken !== token || !isCurrentTurn(room, turn)) return;
+      turn.timer = null;
       expireTurn(room, turn).catch(() => {
         // Keep expiry retryable even if another server operation fails.
-        scheduleTurnTimeout(room, turn, 100);
+        if (turn.timerToken === token) scheduleTurnTimeout(room, turn, 100);
       });
     }, delay);
     turn.timer.unref();
@@ -71,11 +83,12 @@ export function createGameService({ repository, predict, shoeFactory }) {
     const turn = {
       roundId: game.id,
       playerId: player.id,
-      deadline: Date.now() + 30000,
+      deadline: Date.now() + TURN_TIMER.duration,
+      extensions: 0,
     };
     room.turn = turn;
     game.turnDeadline = turn.deadline;
-    scheduleTurnTimeout(room, turn, 30000);
+    scheduleTurnTimeout(room, turn, TURN_TIMER.duration);
   }
   async function finishRoomUpdate(room) {
     // Update the deadline before awaiting persistence, including on completion.
@@ -361,6 +374,13 @@ export function createGameService({ repository, predict, shoeFactory }) {
         // The deadline wins even when a queued browser action arrives before the callback.
         if (await standExpiredTurn(room))
           fail("The turn expired. Refresh the table and try again.", 409);
+        const turn = room.turn;
+        const actionTime = Date.now();
+        // Time can pass while the first expiry check yields to the event loop.
+        if (turn && actionTime >= turn.deadline) {
+          await standExpiredTurn(room);
+          fail("The turn expired. Refresh the table and try again.", 409);
+        }
         try {
           applyAction(
             room.game,
@@ -371,6 +391,22 @@ export function createGameService({ repository, predict, shoeFactory }) {
           );
         } catch (error) {
           fail(error.message, 409);
+        }
+        if (
+          data.action === "HIT" &&
+          turn &&
+          isCurrentTurn(room, turn) &&
+          turn.deadline - actionTime <= TURN_TIMER.extensionThreshold &&
+          turn.extensions < TURN_TIMER.maxExtensions
+        ) {
+          turn.extensions += 1;
+          turn.deadline += TURN_TIMER.extensionDuration;
+          room.game.turnDeadline = turn.deadline;
+          scheduleTurnTimeout(
+            room,
+            turn,
+            Math.max(0, turn.deadline - Date.now()),
+          );
         }
         await finishRoomUpdate(room);
         return roomView(room);

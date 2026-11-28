@@ -174,3 +174,79 @@ test("real Socket.IO clients: authentication, rooms, turns, hidden cards, stale 
     if (server.listening) await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("all Socket.IO clients receive a confirmed turn extension and reconnecting tabs recover it", async (t) => {
+  const realNow = Date.now;
+  let offset = 0;
+  t.mock.method(Date, "now", () => realNow() + offset);
+  const { app, server, io } = createApplication({
+    config: testConfig,
+    repository: testRepository(),
+    shoeFactory: () => testShoe("5", "6", "10", "6", "7", "7", "2", "3"),
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const url = `http://127.0.0.1:${server.address().port}`;
+  const sockets = [];
+  const cookies = [];
+  try {
+    for (let index = 0; index < 2; index++) {
+      const result = await request(app)
+        .post("/api/auth/register")
+        .send({
+          username: `TimerSocket${index}`,
+          email: `timer-socket${index}@example.test`,
+          password: "socket-test-password",
+        })
+        .expect(201);
+      cookies.push(result.headers["set-cookie"][0].split(";")[0]);
+      const socket = connectSocket(url, {
+        transports: ["websocket"],
+        reconnection: false,
+        extraHeaders: {
+          Cookie: cookies[index],
+          Origin: testConfig.clientOrigin,
+        },
+      });
+      sockets.push(socket);
+      await once(socket, "connect");
+    }
+    const [host, guest] = sockets;
+    let room = await emit(host, "room:create");
+    await emit(guest, "room:join", { code: room.code });
+    room = await emit(host, "room:start");
+    const deadline = room.game.turnDeadline;
+    const hostUpdate = once(host, "room:update");
+    const guestUpdate = once(guest, "room:update");
+    offset = 15001;
+    room = await emit(host, "game:action", {
+      action: "HIT",
+      roundId: room.game.id,
+      revision: room.game.revision,
+    });
+    assert.equal(room.game.turnDeadline, deadline + 5000);
+    assert.equal(
+      (await hostUpdate)[0].game.turnDeadline,
+      room.game.turnDeadline,
+    );
+    assert.equal(
+      (await guestUpdate)[0].game.turnDeadline,
+      room.game.turnDeadline,
+    );
+    const restored = connectSocket(url, {
+      transports: ["websocket"],
+      reconnection: false,
+      extraHeaders: { Cookie: cookies[0], Origin: testConfig.clientOrigin },
+    });
+    sockets.push(restored);
+    await once(restored, "connect");
+    assert.equal(
+      (await emit(restored, "room:get")).game.turnDeadline,
+      room.game.turnDeadline,
+    );
+  } finally {
+    for (const socket of sockets) socket.disconnect();
+    await new Promise((resolve) => io.close(resolve));
+    if (server.listening) await new Promise((resolve) => server.close(resolve));
+  }
+});

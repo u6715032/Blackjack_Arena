@@ -243,6 +243,9 @@ test("live multiplayer countdown stays synchronized through HIT and refresh, the
     expect(
       Math.abs((await seconds(host)) - (await seconds(guest))),
     ).toBeLessThanOrEqual(1);
+    await expect(guest.locator(".turn-countdown.critical")).toBeVisible({
+      timeout: 30000,
+    });
     await expect(
       host.getByRole("region", { name: handLabel }).locator(".hand-status"),
     ).toContainText("Stand", { timeout: 35000 });
@@ -257,6 +260,87 @@ test("live multiplayer countdown stays synchronized through HIT and refresh, the
     for (const context of contexts) {
       const history = await (await context.request.get("/api/history")).json();
       expect(history.history.length).toBeGreaterThanOrEqual(1);
+    }
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
+test("a confirmed late HIT extends both countdowns and displays the confirmation", async ({
+  browser,
+}) => {
+  const contexts = await Promise.all([
+    browser.newContext({ baseURL: "http://localhost:5173" }),
+    browser.newContext({ baseURL: "http://localhost:5173" }),
+  ]);
+  try {
+    const pages = [];
+    for (const context of contexts) {
+      const suffix = randomUUID().slice(0, 8);
+      const response = await context.request.post("/api/auth/register", {
+        data: {
+          username: `Extend${suffix}`,
+          email: `${suffix}@example.test`,
+          password: "browser-timer-password",
+        },
+      });
+      expect(response.status()).toBe(201);
+      createdIds.push((await response.json()).user.id);
+      pages.push(await context.newPage());
+    }
+    const [host, guest] = pages;
+    for (const page of pages) await page.goto("/multiplayer");
+    await host.getByRole("button", { name: "Create private room →" }).click();
+    const code = await host.locator(".room-code").innerText();
+    await guest.getByLabel("Room code", { exact: true }).fill(code);
+    await guest.getByRole("button", { name: "Join room →" }).click();
+    await expect(host.locator(".player-list li")).toHaveCount(2);
+    await host.getByRole("button", { name: "Start round →" }).click();
+    // A total of 9 or less guarantees that any HIT leaves the hand active.
+    let active;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await expect
+        .poll(
+          async () =>
+            (await host.getByRole("timer").count()) +
+            (await host.locator(".round-result").count()),
+        )
+        .toBeGreaterThan(0);
+      if (await host.getByRole("timer").count()) {
+        active = (await host
+          .getByText("Your move", { exact: true })
+          .isVisible())
+          ? host
+          : guest;
+        const total = parseInt(
+          await active.locator(".player-hand.active-hand .total").innerText(),
+          10,
+        );
+        if (total <= 9) break;
+        while (await host.getByRole("timer").count()) {
+          const player = (await host
+            .getByText("Your move", { exact: true })
+            .isVisible())
+            ? host
+            : guest;
+          await player.getByRole("button", { name: /^Stand/ }).click();
+        }
+      }
+      await expect(
+        host.getByRole("button", { name: "Deal next round →" }),
+      ).toBeEnabled();
+      await host.getByRole("button", { name: "Deal next round →" }).click();
+      active = null;
+    }
+    expect(active).toBeTruthy();
+    await expect(active.locator(".turn-countdown.warning")).toBeVisible({
+      timeout: 20000,
+    });
+    await active.getByRole("button", { name: /^Hit/ }).click();
+    for (const page of pages) {
+      await expect(page.locator(".turn-extension")).toHaveText("+5s");
+      await expect(page.locator(".turn-countdown.warning")).toHaveCount(0);
+      await expect(page.getByRole("timer")).toContainText(/(19|20)s remaining/);
     }
   } finally {
     await Promise.all(contexts.map((context) => context.close()));

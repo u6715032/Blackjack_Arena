@@ -15,12 +15,19 @@ export default function Multiplayer() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   function receiveRoom(nextRoom) {
-    setRoom(
-      nextRoom && {
-        ...nextRoom,
-        serverTimeOffset: nextRoom.serverTime - Date.now(),
-      },
-    );
+    const snapshot = nextRoom && {
+      ...nextRoom,
+      serverTimeOffset: nextRoom.serverTime - Date.now(),
+    };
+    setRoom((current) => {
+      if (
+        current?.game &&
+        nextRoom?.game?.id === current.game.id &&
+        nextRoom.game.revision < current.game.revision
+      )
+        return current;
+      return snapshot;
+    });
     refreshBalance().catch(() => {});
   }
   function send(event, data = {}) {

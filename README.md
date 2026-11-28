@@ -271,9 +271,13 @@ a restart can lose the unsaved result, in which case its pending wager is refund
 Disconnecting a user's last socket stands their unfinished multiplayer hand,
 including a future turn. Reconnecting cannot undo the stand. The host role moves
 to a connected player. Disconnected seats are removed before the next round.
-An empty, fully saved room is deleted. Each active multiplayer human has 30 seconds
-for their entire turn; HIT does not restart it. The backend automatically applies
-a normal STAND on expiry and gives the next eligible player a fresh deadline.
+An empty, fully saved room is deleted. Each active multiplayer human starts with
+30 seconds. A successful HIT with at most 15 seconds remaining adds 5 seconds to
+the existing deadline, provided the player remains active. Up to three extensions
+are allowed per turn, for a maximum of 45 seconds. HIT above 15 seconds does not
+extend the turn; a bust or automatic stand at 21 cannot earn an extension. The
+backend automatically applies a normal STAND on expiry and gives the next eligible
+player a fresh 30 seconds and a new extension allowance.
 The countdown is derived from server state. No timer runs in the lobby, after
 round completion, or in single-player. One stored single-player game per account
 has no idle expiry; monitor memory for long-running deployments.

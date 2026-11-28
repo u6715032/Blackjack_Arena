@@ -1366,12 +1366,48 @@ td {
     padding-bottom: 16px;
   }
 }
-.turn-countdown {
+.turn-countdown-wrap {
   display: inline-block;
   margin-left: 12px;
-  color: var(--gold);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.turn-countdown {
+  color: #e5e2d7;
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms ease;
+}
+.turn-countdown.warning {
+  color: #f2bc5e;
+}
+.turn-countdown.critical {
+  color: #ff7777;
+}
+.turn-extension {
+  display: inline-block;
+  margin-left: 6px;
+  color: #a5dfb0;
+  font-weight: 700;
+  animation: turn-extension 1.4s ease-out forwards;
+}
+@keyframes turn-extension {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  20%,
+  65% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-extension {
+    transform: none !important;
+  }
 }
 .chip-balance {
   color: #e3c77c;

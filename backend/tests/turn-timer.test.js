@@ -57,6 +57,159 @@ test("multiplayer deadlines start only on a turn, survive HIT and views, and adv
   assert.equal(game.saved, true);
 });
 
+for (const [remaining, extension] of [
+  [20000, 0],
+  [16000, 0],
+  [15000, 5000],
+  [10000, 5000],
+  [5000, 5000],
+  [1000, 5000],
+  [1, 5000],
+]) {
+  test(`HIT with ${remaining}ms remaining adds ${extension}ms`, async (t) => {
+    const { service, updates } = setup(t);
+    let { game } = await service.startRoom(host._id);
+    const deadline = game.turnDeadline;
+    t.mock.timers.tick(30000 - remaining);
+    game = (await service.roomAction(host._id, payload(game, "HIT"))).game;
+    assert.equal(game.currentPlayerId, host._id);
+    assert.equal(game.turnDeadline, deadline + extension);
+    assert.equal(updates.at(-1).game.turnDeadline, game.turnDeadline);
+    assert.equal(
+      service.roomView(guest._id).game.turnDeadline,
+      game.turnDeadline,
+    );
+  });
+}
+
+test("extensions accumulate at most three times, survive views and reconnect, and reset for the next turn", async (t) => {
+  const { service } = setup(t, {
+    shoeFactory: () =>
+      testShoe("2", "3", "10", "2", "4", "7", "2", "2", "2", "2", "2"),
+  });
+  let { game } = await service.startRoom(host._id);
+  const initial = game.turnDeadline;
+  t.mock.timers.tick(15000);
+  for (let index = 1; index <= 4; index++) {
+    if (index > 1) t.mock.timers.tick(5000);
+    game = (await service.roomAction(host._id, payload(game, "HIT"))).game;
+    assert.equal(game.turnDeadline, initial + Math.min(index, 3) * 5000);
+    await service.setConnected(host._id, true);
+    assert.equal(
+      service.roomView(host._id).game.turnDeadline,
+      game.turnDeadline,
+    );
+  }
+  game = (await service.roomAction(host._id, payload(game))).game;
+  assert.equal(game.currentPlayerId, guest._id);
+  assert.equal(game.turnDeadline, Date.now() + 30000);
+  t.mock.timers.tick(15000);
+  const guestDeadline = game.turnDeadline;
+  game = (await service.roomAction(guest._id, payload(game, "HIT"))).game;
+  assert.equal(game.turnDeadline, guestDeadline + 5000);
+});
+
+test("the original timeout cannot stand an extended turn, and the new timeout stands it once", async (t) => {
+  const { service, updates } = setup(t);
+  let { game } = await service.startRoom(host._id);
+  t.mock.timers.tick(15000);
+  game = (await service.roomAction(host._id, payload(game, "HIT"))).game;
+  const revision = game.revision;
+  t.mock.timers.tick(15000);
+  await flush();
+  assert.equal(service.roomView(host._id).game.currentPlayerId, host._id);
+  assert.equal(service.roomView(host._id).game.revision, revision);
+  const count = updates.length;
+  t.mock.timers.tick(5000);
+  await flush();
+  game = service.roomView(host._id).game;
+  assert.equal(game.currentPlayerId, guest._id);
+  assert.equal(game.revision, revision + 1);
+  assert.equal(updates.length, count + 1);
+});
+
+for (const [card, status] of [
+  ["10", "bust"],
+  ["8", "stood"],
+]) {
+  test(`a HIT that causes ${status} does not extend the old turn`, async (t) => {
+    const { service, updates } = setup(t, {
+      shoeFactory: () => testShoe("6", "3", "10", "7", "4", "7", card),
+    });
+    let { game } = await service.startRoom(host._id);
+    const oldDeadline = game.turnDeadline;
+    t.mock.timers.tick(15000);
+    game = (await service.roomAction(host._id, payload(game, "HIT"))).game;
+    assert.equal(game.players[0].status, status);
+    assert.equal(game.currentPlayerId, guest._id);
+    assert.equal(game.turnDeadline, Date.now() + 30000);
+    assert.ok(
+      updates.every(
+        (room) =>
+          room.game?.currentPlayerId !== host._id ||
+          room.game.turnDeadline === oldDeadline,
+      ),
+    );
+  });
+}
+
+test("a round-ending HIT never publishes an extension", async (t) => {
+  const { service, updates } = setup(t, {
+    shoeFactory: () => testShoe("2", "6", "10", "2", "7", "7", "8"),
+  });
+  let { game } = await service.startRoom(host._id);
+  game = (await service.roomAction(host._id, payload(game))).game;
+  const deadline = game.turnDeadline;
+  t.mock.timers.tick(15000);
+  game = (await service.roomAction(guest._id, payload(game, "HIT"))).game;
+  assert.equal(game.status, "complete");
+  assert.equal(game.players[1].status, "stood");
+  assert.equal(game.turnDeadline, null);
+  assert.ok(
+    updates.every((room) => room.game?.turnDeadline !== deadline + 5000),
+  );
+});
+
+test("concurrent, duplicate, stale, invalid and out-of-turn actions cannot add time", async (t) => {
+  const { service } = setup(t);
+  let { game } = await service.startRoom(host._id);
+  const deadline = game.turnDeadline;
+  t.mock.timers.tick(15000);
+  await assert.rejects(
+    service.roomAction(guest._id, payload(game, "HIT")),
+    /turn/,
+  );
+  await assert.rejects(
+    service.roomAction(host._id, payload(game, "INVALID")),
+    /action/,
+  );
+  const request = payload(game, "HIT");
+  const results = await Promise.allSettled([
+    service.roomAction(host._id, request),
+    service.roomAction(host._id, request),
+  ]);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  await assert.rejects(service.roomAction(host._id, request), /changed/);
+  game = service.roomView(host._id).game;
+  assert.equal(game.turnDeadline, deadline + 5000);
+  await service.roomAdvice(host._id, payload(game));
+  assert.equal(service.roomView(host._id).game.turnDeadline, deadline + 5000);
+});
+
+test("actions after expiration are rejected even before the timeout callback runs", async (t) => {
+  const { service } = setup(t);
+  const { game } = await service.startRoom(host._id);
+  t.mock.timers.setTime(game.turnDeadline + 1);
+  await assert.rejects(
+    service.roomAction(host._id, payload(game, "HIT")),
+    /expired/,
+  );
+  assert.equal(service.roomView(host._id).game.currentPlayerId, guest._id);
+});
+
 test("timeout uses normal STAND results, saves all humans once, and stops after completion", async (t) => {
   const repository = testRepository();
   const saves = [];
